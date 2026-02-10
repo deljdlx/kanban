@@ -4,6 +4,30 @@ Un changelog par semaine. Format : sections par type de changement.
 
 ---
 
+## Semaine du 10 février 2026
+
+### Fonctionnalités
+
+- **BackendPlugin — Connexion frontend ↔ backend Laravel** — Plugin central qui active la synchronisation bidirectionnelle avec le backend. Configure AuthService (auth Sanctum), UserService, TaxonomyService, SyncService (RestBackendAdapter), et IndexedDBImageStorage pour communiquer avec l'API Laravel. Mode offline-first maintenu : IndexedDB reste la source de vérité, le backend est un miroir. Configuration persistée dans IndexedDB (`backend:config`). (`src/plugins/registry/BackendPlugin/BackendPlugin.js`, `BackendPlugin/index.js`, `BackendPlugin/manifest.json`)
+- **SyncIndicator** — Indicateur visuel de statut de synchronisation (pastille verte/orange/rouge/grise) affichée dans le footer. Écoute les hooks `sync:pushed`, `sync:queued`, `sync:pushFailed`. (`src/plugins/registry/BackendPlugin/SyncIndicator.js`)
+- **BackendSettingsPanel** — Panneau de configuration dans les settings app : URL backend, toggle activer/désactiver, bouton "Tester la connexion" (GET /api/me), intervalle de sync (secondes). (`src/plugins/registry/BackendPlugin/settingsPanel.js`)
+- **ImageBackendAdapter** — Adapteur spécialisé pour upload/download/delete d'images via multipart/form-data. Upload vers `POST /api/boards/{boardId}/images`, download depuis `GET /api/images/{id}`, delete via `DELETE /api/images/{id}`. (`src/plugins/registry/BackendPlugin/ImageBackendAdapter.js`)
+
+### Infrastructure
+
+- **AuthService : mode backend (Sanctum)** — Ajout de `setBackendUrl(url)` pour activer le mode backend. `login()` fait POST /api/login avec email/password en clair et stocke le token Sanctum dans sessionStorage (`kanban:auth:token`). `logout()` appelle POST /api/logout pour révoquer le token. `getToken()` retourne le token courant. Fallback sur mode local (hash SHA-256) si backend injoignable. (`src/services/AuthService.js`)
+- **UserService : backend-ready** — Ajout de `setFetchUrl(url, getHeaders)` pour rediriger vers le backend. Support des réponses paginées (extraction `data.data`). Fallback sur `/api/users.json` si le backend échoue. (`src/services/UserService.js`)
+- **TaxonomyService : backend-ready** — Ajout de `setFetchUrl(url, getHeaders)` et transformation des réponses backend (array → map). Fallback sur `/api/taxonomies.json` si le backend échoue. (`src/services/TaxonomyService.js`)
+- **IndexedDBImageStorage : sync backend** — Ajout de `setBackendAdapter(adapter)` pour injecter l'adapteur d'upload/download. Upload en parallèle (fire-and-forget) lors de `store()`, download depuis backend si absent en IndexedDB lors de `get()`, delete backend lors de `delete()`. (`src/services/storage/IndexedDBImageStorage.js`)
+- **Hooks auth** — Déclaration de `auth:login` et `auth:logout` dans hookDefinitions.js. Déclenchés par AuthService.logout() et LoginView après login réussi. (`src/plugins/hookDefinitions.js`, `src/services/AuthService.js`, `src/views/LoginView.js`)
+
+### Documentation
+
+- BackendPlugin README complet : architecture, fonctionnement, persistence, modification, troubleshooting (`src/plugins/registry/BackendPlugin/README.md`)
+- CHANGELOG mis à jour avec les changements de la semaine
+
+---
+
 ## Semaine du 9 février 2026
 
 ### Fonctionnalités
