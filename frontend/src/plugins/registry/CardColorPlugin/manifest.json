@@ -1,0 +1,9 @@
+{
+    "name": "card-color",
+    "label": "Couleur des cartes",
+    "description": "Attribue une couleur à chaque carte (border-left) via un color picker.",
+    "tags": ["apparence", "couleur", "carte"],
+    "hooks": {
+        "listens": ["board:rendered", "modal:editCard:opened", "modal:addCard:opened", "card:created"]
+    }
+}

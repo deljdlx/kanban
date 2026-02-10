@@ -1,0 +1,9 @@
+{
+    "name": "background-image",
+    "label": "Image de fond",
+    "description": "Glisser-déposer une image sur le board pour la définir comme fond.",
+    "tags": ["apparence", "image", "personnalisation"],
+    "hooks": {
+        "listens": ["board:rendered"]
+    }
+}

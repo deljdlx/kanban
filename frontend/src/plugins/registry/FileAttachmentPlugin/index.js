@@ -1,0 +1,8 @@
+import manifest from './manifest.json';
+import plugin from './FileAttachmentPlugin.js';
+import { STYLES } from './styles.js';
+import { assemblePlugin } from '../../lib/PluginAssembler.js';
+
+export default assemblePlugin(manifest, plugin, {
+    styles: STYLES,
+});

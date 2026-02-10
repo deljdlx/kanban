@@ -1,0 +1,52 @@
+{
+  "name": "kanban",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.{js,scss,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,scss,json,md}\"",
+    "prepare": "cd .. && husky"
+  },
+  "lint-staged": {
+    "src/**/*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.{scss,json,md}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^20.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
+    "sass": "^1.97.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.4",
+    "animejs": "^4.3.5",
+    "codemirror": "^6.0.2",
+    "dompurify": "^3.3.1",
+    "highlight.js": "^11.11.1",
+    "idb": "^8.0.3",
+    "markdown-it": "^14.1.0",
+    "mermaid": "^11.12.2",
+    "sortablejs": "^1.15.6"
+  }
+}

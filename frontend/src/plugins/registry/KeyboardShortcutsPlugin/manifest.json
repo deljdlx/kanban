@@ -1,0 +1,7 @@
+{
+    "name": "keyboard-shortcuts",
+    "label": "Raccourcis clavier",
+    "description": "Raccourcis clavier paramétrables : Escape, Ctrl+N, etc.",
+    "tags": ["navigation", "productivité"],
+    "priority": 5
+}

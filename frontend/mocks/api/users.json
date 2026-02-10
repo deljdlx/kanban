@@ -1,0 +1,9 @@
+{
+  "users": [
+    { "id": "user-1", "name": "Alice Martin",   "initials": "AM", "color": "#6c63ff", "role": "admin" },
+    { "id": "user-2", "name": "Bob Dupont",     "initials": "BD", "color": "#ff6b6b", "role": "member" },
+    { "id": "user-3", "name": "Claire Petit",   "initials": "CP", "color": "#ffc857", "role": "member" },
+    { "id": "user-4", "name": "David Chen",     "initials": "DC", "color": "#44bb44", "role": "viewer" },
+    { "id": "user-5", "name": "Emma Rousseau",  "initials": "ER", "color": "#ff9ff3", "role": "member" }
+  ]
+}

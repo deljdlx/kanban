@@ -1,0 +1,125 @@
+.filter-dropdown {
+    position: relative;
+
+    &-trigger {
+        padding: var(--spacing-xs) var(--spacing-md);
+        background: none;
+        color: var(--color-text-muted);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        font-weight: 600;
+        font-family: var(--font-family);
+        cursor: pointer;
+        transition:
+            border-color var(--transition-fast),
+            color var(--transition-fast);
+
+        &:hover {
+            border-color: var(--color-primary);
+            color: var(--color-text);
+        }
+
+        // Indicateur visuel quand des filtres sont actifs
+        &--active {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: rgba(108, 99, 255, 0.1);
+        }
+    }
+
+    &-panel {
+        display: none;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        width: 260px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding: var(--spacing-md);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        z-index: 100;
+    }
+
+    &--open &-panel {
+        display: flex;
+    }
+
+    &-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    &-section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    &-section-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+
+        // Le SelectUser réutilisé doit occuper toute la largeur
+        > .select-user {
+            width: 100%;
+        }
+    }
+
+    // Option tag (badge coloré)
+    &-tag-option {
+        padding: 2px 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 10px;
+        text-transform: uppercase;
+    }
+
+    // Style commun à toutes les options
+    &-option {
+        border: 1px solid transparent;
+        font-family: var(--font-family);
+        cursor: pointer;
+        transition:
+            border-color var(--transition-fast),
+            opacity var(--transition-fast);
+
+        &:hover {
+            border-color: var(--color-primary);
+        }
+
+        &--active {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 1px var(--color-primary);
+        }
+    }
+
+    &-reset {
+        margin-top: var(--spacing-xs);
+        padding: var(--spacing-xs);
+        background: none;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text-muted);
+        font-size: 0.75rem;
+        font-family: var(--font-family);
+        cursor: pointer;
+        transition:
+            color var(--transition-fast),
+            border-color var(--transition-fast);
+
+        &:hover {
+            color: var(--color-text);
+            border-color: var(--color-text-muted);
+        }
+    }
+}

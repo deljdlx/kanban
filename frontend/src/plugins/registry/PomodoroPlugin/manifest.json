@@ -1,0 +1,56 @@
+{
+    "name": "pomodoro",
+    "label": "Pomodoro",
+    "description": "Widget timer Pomodoro intégré dans une carte. Propose des durées prédéfinies et notifie via les hooks.",
+    "tags": ["widget", "productivite", "timer"],
+    "hooks": {
+        "provides": [
+            {
+                "name": "pomodoro:started",
+                "label": "Pomodoro démarré",
+                "category": "Pomodoro",
+                "payload": {
+                    "card": "Card — carte du timer",
+                    "duration": "number — durée configurée (secondes)",
+                    "remaining": "number — temps restant (secondes)"
+                },
+                "notification": {
+                    "type": "success",
+                    "template": "Pomodoro «{title}» démarré",
+                    "variables": { "title": "card.data.label" }
+                }
+            },
+            {
+                "name": "pomodoro:completed",
+                "label": "Pomodoro terminé",
+                "category": "Pomodoro",
+                "payload": {
+                    "card": "Card — carte du timer",
+                    "duration": "number — durée totale (secondes)"
+                },
+                "notification": {
+                    "type": "success",
+                    "template": "Pomodoro «{title}» terminé !",
+                    "variables": { "title": "card.data.label" }
+                }
+            },
+            {
+                "name": "pomodoro:paused",
+                "label": "Pomodoro en pause",
+                "category": "Pomodoro",
+                "payload": {
+                    "card": "Card — carte du timer",
+                    "duration": "number — durée configurée (secondes)",
+                    "remaining": "number — temps restant (secondes)",
+                    "elapsed": "number — temps écoulé (secondes)"
+                },
+                "notification": {
+                    "type": "info",
+                    "template": "Pomodoro «{title}» en pause",
+                    "variables": { "title": "card.data.label" }
+                }
+            }
+        ],
+        "listens": ["modal:addCard:opened", "card:renderBody", "modal:cardDetail:renderContent"]
+    }
+}

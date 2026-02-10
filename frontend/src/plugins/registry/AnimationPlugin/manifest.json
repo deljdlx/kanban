@@ -1,0 +1,9 @@
+{
+    "name": "animation",
+    "label": "Animation",
+    "description": "Anime les modales (pop, fondu, glissement, zoom, flip), le drop de cartes inter-colonnes (pop, flash, rebond), l'entrée des colonnes (cascade, pop, glissement, fondu) et l'entrée des cartes (cascade, pop, élévation) via anime.js.",
+    "tags": ["ui", "animation", "visual"],
+    "hooks": {
+        "listens": ["card:moved", "board:displayed"]
+    }
+}

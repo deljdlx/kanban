@@ -1,0 +1,72 @@
+// UploadZone — Composant réutilisable d'upload fichier.
+//
+// Deux modes :
+//   - Standard : zone dashed avec label + bouton "parcourir"
+//   - Compact  : bouton seul 📎 (pour formulaires inline)
+
+.upload-zone {
+    border: 2px dashed var(--color-border, #ddd);
+    border-radius: var(--radius-md, 6px);
+    padding: var(--spacing-md, 12px);
+    text-align: center;
+    color: var(--color-text-muted, #888);
+    font-size: 0.85rem;
+    transition:
+        border-color var(--transition-fast, 0.15s),
+        background var(--transition-fast, 0.15s);
+    cursor: default;
+
+    // État dragover
+    &--dragover {
+        border-color: var(--color-primary, #3498db);
+        background: var(--color-primary-bg, rgba(52, 152, 219, 0.06));
+    }
+
+    // Mode compact : pas de bordure, inline
+    &--compact {
+        border: none;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+    }
+}
+
+.upload-zone-label {
+    display: inline;
+}
+
+.upload-zone-browse {
+    color: var(--color-primary, #3498db);
+    font-weight: 500;
+    text-decoration: underline;
+    padding: 0;
+    font-size: inherit;
+    border: none;
+    background: none;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--color-primary-hover, #2980b9);
+    }
+}
+
+.upload-zone-attach-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: var(--radius-md, 6px);
+    color: var(--color-text-muted, #888);
+    font-size: 1rem;
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+    cursor: pointer;
+    transition:
+        color var(--transition-fast, 0.15s),
+        border-color var(--transition-fast, 0.15s);
+
+    &:hover {
+        color: var(--color-primary, #3498db);
+        border-color: var(--color-primary, #3498db);
+    }
+}

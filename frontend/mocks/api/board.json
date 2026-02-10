@@ -1,0 +1,268 @@
+{
+  "columns": [
+    {
+      "id": "col-backlog",
+      "title": "Backlog",
+      "cards": [
+        {
+          "id": "card-1",
+          "title": "Authentification utilisateur",
+          "description": "## Objectif\nImplementer un systeme d'authentification complet.\n\n### Fonctionnalites\n- Login / logout\n- Gestion des sessions\n- **Refresh token** pour eviter les deconnexions\n\n> Note: Penser a la securite XSS et CSRF",
+          "tags": {
+            "type": [
+              "feature"
+            ]
+          },
+          "assignee": "user-1",
+          "author": "user-1",
+          "createdAt": "2025-04-10T09:30:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-04-10T09:30:00Z",
+              "userId": "user-1",
+              "changes": null
+            },
+            {
+              "action": "updated",
+              "date": "2025-04-11T14:00:00Z",
+              "userId": "user-1",
+              "changes": {
+                "assignee": {
+                  "from": null,
+                  "to": "user-1"
+                }
+              }
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-1",
+              "text": "Il faudrait penser au **refresh token** pour eviter de deconnecter l'utilisateur apres 15 min.\n\nVoir la doc: https://auth0.com/docs/tokens/refresh-tokens",
+              "authorId": "user-3",
+              "date": "2025-04-11T15:20:00Z"
+            },
+            {
+              "id": "comment-2",
+              "text": "Bonne remarque! J'ajoute:\n1. Silent refresh\n2. Token rotation\n3. Stockage securise en `httpOnly` cookie",
+              "authorId": "user-1",
+              "date": "2025-04-11T16:05:00Z"
+            }
+          ]
+        },
+        {
+          "id": "card-2",
+          "title": "Bug affichage mobile",
+          "description": "Le header deborde sur **iPhone SE**.\n\n### Etapes pour reproduire\n1. Ouvrir le site sur iPhone SE\n2. Mode portrait\n3. Observer le header\n\n`overflow: hidden` ne suffit pas.",
+          "tags": {
+            "type": [
+              "bug"
+            ],
+            "priority": [
+              "high"
+            ]
+          },
+          "assignee": "user-2",
+          "author": "user-3",
+          "createdAt": "2025-04-12T14:15:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-04-12T14:15:00Z",
+              "userId": "user-3",
+              "changes": null
+            }
+          ],
+          "comments": [
+            {
+              "id": "comment-3",
+              "text": "Fix propose:\n```css\n.header {\n  max-width: 100vw;\n  overflow-x: hidden;\n}\n```\nA tester sur *tous* les devices.",
+              "authorId": "user-2",
+              "date": "2025-04-13T09:40:00Z"
+            }
+          ]
+        },
+        {
+          "id": "card-9",
+          "title": "Architecture microservices",
+          "description": "## Schema d'architecture\n\nVoici le flux de donnees entre les services:\n\n```mermaid\nflowchart LR\n    Client[Client Web] --> API[API Gateway]\n    API --> Auth[Auth Service]\n    API --> Users[Users Service]\n    API --> Tickets[Tickets Service]\n    Auth --> DB1[(Auth DB)]\n    Users --> DB2[(Users DB)]\n    Tickets --> DB3[(Tickets DB)]\n    Tickets --> Queue[Message Queue]\n    Queue --> Notif[Notification Service]\n```\n\n### Technologies\n- **API Gateway**: Kong ou Traefik\n- **Services**: Node.js / Go\n- **BDD**: PostgreSQL\n- **Queue**: RabbitMQ",
+          "comments": [
+            {
+              "id": "comment-10",
+              "text": "### Proposition de sequence d'auth\n\nVoici le flow complet:\n\n```mermaid\nsequenceDiagram\n    participant U as User\n    participant C as Client\n    participant G as API Gateway\n    participant A as Auth Service\n    participant D as Database\n\n    U->>C: Login (email, password)\n    C->>G: POST /auth/login\n    G->>A: Forward request\n    A->>D: Verify credentials\n    D-->>A: User found\n    A-->>G: JWT + Refresh Token\n    G-->>C: 200 OK + tokens\n    C-->>U: Logged in!\n```\n\n**Points importants:**\n- Le refresh token est stocke en `httpOnly` cookie\n- Le JWT expire apres **15 min**\n- Rotation des refresh tokens a chaque utilisation",
+              "authorId": "user-2",
+              "date": "2025-04-23T10:30:00Z"
+            }
+          ],
+          "tags": {
+            "type": [
+              "feature"
+            ]
+          },
+          "createdAt": "2025-04-22T10:00:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-04-22T10:00:00Z",
+              "userId": null,
+              "changes": null
+            }
+          ]
+        },
+        {
+          "id": "card-3",
+          "title": "Refonte page settings",
+          "description": "### Probleme actuel\nTrop d'options, UX confuse.\n\n### Solution proposee\n- Regrouper par categories\n- Ajouter des *tooltips* explicatifs\n- Mode **avance** cache par defaut",
+          "tags": {
+            "type": [
+              "ux"
+            ]
+          },
+          "author": "user-2",
+          "createdAt": "2025-04-15T11:00:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-04-15T11:00:00Z",
+              "userId": "user-2",
+              "changes": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "col-todo",
+      "title": "A faire",
+      "cards": [
+        {
+          "id": "card-4",
+          "title": "API REST tickets",
+          "description": "CRUD complet avec validation.\n\n| Endpoint | Methode | Description |\n|----------|---------|-------------|\n| /tickets | GET | Liste tous les tickets |\n| /tickets | POST | Cree un ticket |\n| /tickets/:id | PUT | Met a jour |\n| /tickets/:id | DELETE | Supprime |",
+          "tags": {
+            "type": [
+              "feature"
+            ],
+            "priority": [
+              "medium"
+            ]
+          },
+          "createdAt": "2025-04-18T08:45:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-04-18T08:45:00Z",
+              "userId": null,
+              "changes": null
+            }
+          ]
+        },
+        {
+          "id": "card-5",
+          "title": "Drag & drop colonnes",
+          "description": "Permettre de **reordonner les colonnes** du board.\n\nUtiliser [SortableJS](https://sortablejs.github.io/Sortable/) comme pour les cartes.",
+          "tags": {
+            "type": [
+              "feature",
+              "ux"
+            ]
+          },
+          "createdAt": "2025-04-20T16:00:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-04-20T16:00:00Z",
+              "userId": null,
+              "changes": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "col-progress",
+      "title": "En cours",
+      "cards": [
+        {
+          "id": "card-6",
+          "title": "Maquette Figma",
+          "description": "## Design System\n\n### Couleurs\n- Primary: `#6c63ff`\n- Surface: `#1a1a2e`\n- Border: `#2a2a4a`\n\n### Composants\n- [x] Boutons\n- [x] Inputs\n- [ ] Modales\n- [ ] Cards",
+          "tags": {
+            "type": [
+              "ux"
+            ],
+            "priority": [
+              "low"
+            ]
+          },
+          "assignee": "user-4",
+          "author": "user-5",
+          "createdAt": "2025-04-08T10:00:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-04-08T10:00:00Z",
+              "userId": "user-5",
+              "changes": null
+            },
+            {
+              "action": "updated",
+              "date": "2025-04-09T11:30:00Z",
+              "userId": "user-5",
+              "changes": {
+                "title": {
+                  "from": "Maquette",
+                  "to": "Maquette Figma"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "col-done",
+      "title": "Termine",
+      "cards": [
+        {
+          "id": "card-7",
+          "title": "Setup Vite + Sass",
+          "description": "Stack front operationnelle.\n\n```bash\nnpm create vite@latest\nnpm install sass\n```\n\n**Done!**",
+          "tags": {
+            "type": [
+              "feature"
+            ]
+          },
+          "createdAt": "2025-03-28T09:00:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-03-28T09:00:00Z",
+              "userId": null,
+              "changes": null
+            }
+          ]
+        },
+        {
+          "id": "card-8",
+          "title": "Fix scroll horizontal",
+          "description": "Scroll fluide sur petit ecran.\n\n~~Ancienne solution avec JS~~\n\nNouvelle solution pure CSS:\n```css\n.board {\n  overflow-x: auto;\n  scroll-behavior: smooth;\n}\n```",
+          "tags": {
+            "type": [
+              "bug"
+            ]
+          },
+          "createdAt": "2025-04-02T13:30:00Z",
+          "history": [
+            {
+              "action": "created",
+              "date": "2025-04-02T13:30:00Z",
+              "userId": null,
+              "changes": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+    "name": "file-attachment",
+    "label": "Fichiers joints",
+    "description": "Attacher des fichiers à une carte (tous types).",
+    "tags": ["productivité", "fichiers"],
+    "hooks": {
+        "listens": ["modal:cardDetail:renderContent", "modal:editCard:opened", "card:rendered", "card:deleted"]
+    }
+}

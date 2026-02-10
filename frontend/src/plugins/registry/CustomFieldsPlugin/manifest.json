@@ -1,0 +1,17 @@
+{
+    "name": "custom-fields",
+    "label": "Champs personnalises",
+    "description": "Definissez des champs personnalises par board et remplissez-les pour chaque carte.",
+    "tags": ["productivite", "organisation", "donnees"],
+    "hooks": {
+        "listens": [
+            "board:didChange",
+            "board:willChange",
+            "board:rendered",
+            "modal:addCard:opened",
+            "modal:editCard:opened",
+            "modal:cardDetail:renderContent",
+            "card:deleted"
+        ]
+    }
+}

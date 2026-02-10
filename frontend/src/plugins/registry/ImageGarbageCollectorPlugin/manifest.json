@@ -1,0 +1,7 @@
+{
+    "name": "image-gc",
+    "label": "Nettoyage d'images",
+    "description": "Supprime automatiquement les images orphelines après chaque sauvegarde.",
+    "tags": ["images", "maintenance"],
+    "hooks": { "listens": ["board:saved"] }
+}

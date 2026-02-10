@@ -1,0 +1,9 @@
+{
+    "name": "column-mapping",
+    "label": "Column Mapping",
+    "description": "Affiche des cartes miroir depuis d'autres boards (lecture seule).",
+    "tags": ["visualisation", "multi-board"],
+    "hooks": {
+        "listens": ["column:renderBody", "board:rendered", "board:displayed", "modal:boardSettings:opened"]
+    }
+}

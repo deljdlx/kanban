@@ -1,0 +1,9 @@
+{
+    "name": "column-color",
+    "label": "Couleur des colonnes",
+    "description": "Permet de choisir une couleur de fond pour chaque colonne via un color picker.",
+    "tags": ["apparence", "couleur", "colonne"],
+    "hooks": {
+        "listens": ["board:rendered"]
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "name": "image-drop",
+    "label": "Images par glisser-déposer",
+    "description": "Déposez une image sur une colonne pour créer une carte avec cette image.",
+    "tags": ["image", "carte", "creation", "drag-drop"],
+    "hooks": {
+        "listens": ["board:rendered", "card:renderBody", "modal:cardDetail:renderContent", "card:typeActivated"]
+    }
+}

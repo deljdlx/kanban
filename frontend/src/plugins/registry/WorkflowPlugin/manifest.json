@@ -1,0 +1,42 @@
+{
+    "name": "workflow-engine",
+    "label": "Automatisation (Workflow)",
+    "description": "Moteur de règles : automatise des actions quand des événements se produisent. Éditeur JavaScript intégré.",
+    "tags": ["core", "automatisation"],
+    "hooks": {
+        "provides": [
+            {
+                "name": "workflow:ruleTriggered",
+                "label": "Règle exécutée",
+                "category": "Workflow",
+                "payload": {
+                    "rule": "Object { id, name, trigger } — règle exécutée",
+                    "trigger": "string — hook qui a déclenché la règle"
+                },
+                "notification": {
+                    "type": "info",
+                    "duration": 2000,
+                    "template": "Règle «{name}» exécutée",
+                    "variables": { "name": "rule.name" }
+                }
+            },
+            {
+                "name": "workflow:ruleError",
+                "label": "Erreur de règle",
+                "category": "Workflow",
+                "payload": {
+                    "rule": "Object { id, name, trigger } — règle en erreur",
+                    "error": "Error { message } — erreur d'exécution",
+                    "trigger": "string — hook qui a déclenché la règle"
+                },
+                "notification": {
+                    "type": "error",
+                    "duration": 5000,
+                    "template": "Erreur dans «{name}» : {error}",
+                    "variables": { "name": "rule.name", "error": "error.message" }
+                }
+            }
+        ],
+        "listens": ["modal:boardSettings:opened"]
+    }
+}

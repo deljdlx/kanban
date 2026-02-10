@@ -1,0 +1,9 @@
+{
+    "name": "youtube",
+    "label": "Video YouTube",
+    "description": "Cartes avec video YouTube embarquee",
+    "tags": ["widget", "media", "video"],
+    "hooks": {
+        "listens": ["modal:addCard:opened", "card:renderBody", "modal:cardDetail:renderContent"]
+    }
+}

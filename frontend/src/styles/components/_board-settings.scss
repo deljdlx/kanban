@@ -1,0 +1,606 @@
+/**
+ * _board-settings.scss — Styles pour ModalBoardSettings.
+ *
+ * Modale fullscreen avec sidebar de navigation et panneaux de contenu.
+ */
+
+// Hérite de .modal-overlay — pas de surcharge nécessaire,
+// les valeurs (background, z-index) sont identiques.
+
+.board-settings {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    width: calc(100vw - 48px);
+    height: calc(100vh - 48px);
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    // — Header
+    &-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-bottom: 1px solid var(--color-border);
+
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+        }
+    }
+
+    &-close {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: var(--spacing-xs);
+        line-height: 1;
+        border-radius: var(--radius-sm);
+        transition:
+            color var(--transition-fast),
+            background var(--transition-fast);
+
+        &:hover {
+            color: var(--color-text);
+            background: var(--color-surface-hover);
+        }
+    }
+
+    // — Body (sidebar + content)
+    &-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+    }
+
+    // — Sidebar
+    &-sidebar {
+        width: 200px;
+        flex-shrink: 0;
+        background: var(--color-bg);
+        border-right: 1px solid var(--color-border);
+        padding: var(--spacing-sm);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    &-nav-item {
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: none;
+        background: none;
+        color: var(--color-text);
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-align: left;
+        cursor: pointer;
+        border-radius: var(--radius-md);
+        transition:
+            background var(--transition-fast),
+            color var(--transition-fast);
+
+        &:hover {
+            background: var(--color-border);
+        }
+
+        &--active {
+            background: var(--color-primary);
+            color: #fff;
+
+            &:hover {
+                background: var(--color-primary-hover);
+            }
+        }
+    }
+
+    // — Content
+    &-content {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+
+    &-panel {
+        display: none;
+        padding: var(--spacing-lg);
+
+        &--active {
+            display: block;
+        }
+    }
+
+    &-intro {
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+        margin: 0 0 var(--spacing-md) 0;
+    }
+
+    // — Champs de formulaire génériques
+    &-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        margin-bottom: var(--spacing-md);
+    }
+
+    &-field-label {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    &-input {
+        width: 100%;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-bg);
+        color: var(--color-text);
+        font-size: var(--font-size-sm);
+        font-family: var(--font-family);
+        transition: border-color var(--transition-fast);
+
+        &:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        &::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    }
+
+    // — Textarea (description)
+    &-textarea {
+        resize: vertical;
+        min-height: 80px;
+        line-height: 1.4;
+    }
+
+    // — Zone de drop pour image
+    &-dropzone {
+        position: relative;
+        border: 2px dashed var(--color-border);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        text-align: center;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+            border-color: var(--color-primary);
+            background: rgba(var(--color-primary-rgb, 74, 144, 217), 0.05);
+        }
+
+        &--active {
+            border-color: var(--color-primary);
+            background: rgba(var(--color-primary-rgb, 74, 144, 217), 0.1);
+        }
+
+        &--has-image {
+            border-style: solid;
+
+            .board-settings-dropzone-text {
+                opacity: 0;
+            }
+
+            .board-settings-dropzone-preview {
+                opacity: 1;
+            }
+
+            .board-settings-dropzone-remove {
+                opacity: 1;
+            }
+
+            &:hover .board-settings-dropzone-text {
+                opacity: 1;
+                background: rgba(0, 0, 0, 0.7);
+                padding: var(--spacing-sm) var(--spacing-md);
+                border-radius: var(--radius-md);
+            }
+        }
+    }
+
+    &-dropzone-text {
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+        z-index: 2;
+        pointer-events: none;
+        transition:
+            opacity var(--transition-fast),
+            background var(--transition-fast);
+    }
+
+    &-dropzone-input {
+        display: none;
+    }
+
+    &-dropzone-preview {
+        position: absolute;
+        inset: 4px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        border-radius: var(--radius-sm);
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+    }
+
+    &-dropzone-remove {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 50%;
+        background: var(--color-danger, #e74c3c);
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        opacity: 0;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+            opacity var(--transition-fast),
+            transform var(--transition-fast);
+
+        &:hover {
+            transform: scale(1.1);
+        }
+    }
+
+    // — Bouton export
+    &-export-btn {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--color-text);
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition:
+            border-color var(--transition-fast),
+            color var(--transition-fast);
+
+        &:hover:not(:disabled) {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    // — Zone de danger
+    &-danger-zone {
+        margin-top: var(--spacing-lg);
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid var(--color-border);
+    }
+
+    &-delete-btn {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        border: 1px solid var(--color-danger, #e74c3c);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--color-danger, #e74c3c);
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition:
+            background var(--transition-fast),
+            color var(--transition-fast);
+
+        &:hover {
+            background: var(--color-danger, #e74c3c);
+            color: #fff;
+        }
+    }
+
+    // — Zone d'injection pour plugins
+    &-plugin-zone {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    // — Texte d'aide
+    &-hint {
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+        margin: var(--spacing-xs) 0 0 0;
+        font-style: italic;
+    }
+
+    // — Onglets de catégorie (plugins)
+    &-plugin-tabs {
+        display: flex;
+        gap: var(--spacing-xs);
+        margin-bottom: var(--spacing-md);
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    &-plugin-tab {
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: none;
+        background: none;
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition:
+            color var(--transition-fast),
+            border-color var(--transition-fast);
+
+        &:hover {
+            color: var(--color-text);
+        }
+
+        &--active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+            font-weight: 600;
+        }
+    }
+
+    // — Liste des plugins
+    &-plugins-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    &-plugins-section {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: var(--spacing-sm) 0 var(--spacing-xs) 0;
+        margin-top: var(--spacing-sm);
+
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    &-plugins-empty {
+        text-align: center;
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+        padding: var(--spacing-lg);
+        margin: 0;
+    }
+
+    &-plugin-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--spacing-md);
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        transition: border-color var(--transition-fast);
+
+        &:hover {
+            border-color: var(--color-primary);
+        }
+
+        &--error {
+            border-color: var(--color-danger, #e74c3c);
+            background: rgba(231, 76, 60, 0.05);
+        }
+    }
+
+    &-plugin-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    &-plugin-name {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    &-plugin-description {
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+    }
+
+    &-plugin-error {
+        font-size: 0.75rem;
+        color: var(--color-danger, #e74c3c);
+        margin-top: 4px;
+    }
+
+    &-plugin-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    &-plugin-settings {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--color-primary);
+        color: #fff;
+        border: 1px solid var(--color-primary);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+
+        &:hover {
+            background: var(--color-primary-hover);
+            border-color: var(--color-primary-hover);
+        }
+
+        &::before {
+            content: '⚙';
+            font-size: 1rem;
+        }
+    }
+
+    // — Toggle switch
+    &-toggle {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        cursor: pointer;
+    }
+
+    &-toggle-input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+
+        &:checked + .board-settings-toggle-slider {
+            background: var(--color-primary);
+
+            &::before {
+                transform: translateX(20px);
+            }
+        }
+
+        &:disabled + .board-settings-toggle-slider {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    &-toggle-slider {
+        position: absolute;
+        inset: 0;
+        background: var(--color-border);
+        border-radius: 24px;
+        transition: background var(--transition-fast);
+
+        &::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: transform var(--transition-fast);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+    }
+}
+
+// — Profile Panel (avatar, couleur)
+.profile-avatar-preview-group {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.profile-avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.profile-color-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.profile-color-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+
+    &--selected {
+        border: 3px solid #333;
+    }
+}
+
+// Responsive
+@media (max-width: 600px) {
+    .board-settings {
+        max-width: 100%;
+        max-height: 100%;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+
+        &-body {
+            flex-direction: column;
+        }
+
+        &-sidebar {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid var(--color-border);
+            flex-direction: row;
+            overflow-x: auto;
+            padding: var(--spacing-xs);
+        }
+
+        &-nav-item {
+            white-space: nowrap;
+        }
+    }
+}

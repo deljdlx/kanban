@@ -1,0 +1,9 @@
+{
+    "name": "column-toggle",
+    "label": "Affichage des colonnes",
+    "description": "Affiche un dropdown dans le header pour masquer ou afficher des colonnes du board.",
+    "tags": ["vue", "colonnes", "header"],
+    "hooks": {
+        "listens": ["header:renderActions", "board:rendered", "column:added", "column:removed"]
+    }
+}

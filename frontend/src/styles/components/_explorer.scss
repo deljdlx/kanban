@@ -1,0 +1,246 @@
+/**
+ * _explorer.scss — Styles de l'explorateur IndexedDB.
+ *
+ * Layout grid : sidebar fixe (260px) + zone de contenu flexible.
+ * Responsive : sidebar empilee sur mobile (< 640px).
+ */
+
+// --- Layout principal ---
+.explorer {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+    background: var(--color-bg);
+}
+
+// --- Sidebar ---
+.explorer-sidebar {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+}
+
+.explorer-back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) 0;
+    cursor: pointer;
+    transition: color var(--transition-fast);
+
+    &:hover {
+        color: var(--color-primary);
+    }
+}
+
+.explorer-sidebar-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.explorer-store-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.explorer-store-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast);
+
+    &:hover {
+        background: var(--color-surface-hover);
+    }
+
+    &--active {
+        background: var(--color-surface-hover);
+        border-left-color: var(--color-primary);
+    }
+}
+
+.explorer-store-name {
+    font-size: var(--font-size-md);
+    color: var(--color-text);
+    font-family: monospace;
+}
+
+.explorer-store-count {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    background: var(--color-bg);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    min-width: 24px;
+    text-align: center;
+}
+
+.explorer-sidebar-footer {
+    margin-top: auto;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+// --- Zone de contenu ---
+.explorer-content {
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+}
+
+// --- Breadcrumb ---
+.explorer-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+
+    a {
+        color: var(--color-primary);
+        text-decoration: none;
+        cursor: pointer;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+
+    .explorer-breadcrumb-separator {
+        color: var(--color-text-muted);
+    }
+}
+
+// --- Table des records ---
+.explorer-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th {
+        text-align: left;
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    td {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-sm);
+        color: var(--color-text);
+        border-bottom: 1px solid var(--color-border);
+        max-width: 400px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.explorer-row {
+    cursor: pointer;
+    transition: background var(--transition-fast);
+
+    &:hover {
+        background: var(--color-surface-hover);
+    }
+}
+
+.explorer-cell-mono {
+    font-family: monospace;
+    font-size: var(--font-size-xs);
+}
+
+// --- Thumbnail (liste images) ---
+.explorer-thumbnail {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    display: block;
+}
+
+// --- Detail d'un record ---
+.explorer-detail-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+    background: var(--color-bg);
+    display: block;
+}
+
+.explorer-json {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    overflow-x: auto;
+    word-break: break-word;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    line-height: 1.5;
+}
+
+// --- Empty state ---
+.explorer-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-md);
+}
+
+// --- Responsive : sidebar empilee ---
+@media (max-width: 639px) {
+    .explorer {
+        grid-template-columns: 1fr;
+    }
+
+    .explorer-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .explorer-store-list {
+        flex-direction: row;
+        gap: var(--spacing-sm);
+    }
+
+    .explorer-store-item {
+        border-left: none;
+        border-bottom: 3px solid transparent;
+
+        &--active {
+            border-left-color: transparent;
+            border-bottom-color: var(--color-primary);
+        }
+    }
+}

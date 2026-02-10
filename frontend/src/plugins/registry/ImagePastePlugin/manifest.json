@@ -1,0 +1,9 @@
+{
+    "name": "image-paste",
+    "label": "Coller des images",
+    "description": "Coller des images depuis le presse-papier dans les descriptions et commentaires.",
+    "tags": ["productivite", "images"],
+    "hooks": {
+        "listens": ["modal:editCard:opened"]
+    }
+}

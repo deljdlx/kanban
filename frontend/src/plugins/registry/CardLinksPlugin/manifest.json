@@ -1,0 +1,9 @@
+{
+    "name": "card-links",
+    "label": "Liens entre cartes",
+    "description": "Liens bidirectionnels entre cartes avec badge et highlight au survol.",
+    "tags": ["productivité", "organisation"],
+    "hooks": {
+        "listens": ["board:didChange", "board:willChange", "board:rendered", "modal:editCard:opened", "card:deleted"]
+    }
+}

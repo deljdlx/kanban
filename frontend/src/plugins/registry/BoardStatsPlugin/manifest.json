@@ -1,0 +1,18 @@
+{
+    "name": "board-stats",
+    "label": "Statistiques du Board",
+    "description": "Carte widget affichant les statistiques du board en temps reel",
+    "tags": ["widget", "analytics", "board"],
+    "hooks": {
+        "listens": [
+            "modal:addCard:opened",
+            "card:renderBody",
+            "card:created",
+            "card:deleted",
+            "card:updated",
+            "card:moved",
+            "card:typeActivated",
+            "modal:cardDetail:renderContent"
+        ]
+    }
+}

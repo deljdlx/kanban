@@ -1,0 +1,9 @@
+{
+    "name": "markdown",
+    "label": "Markdown",
+    "description": "Permet le rendu Markdown dans les descriptions et commentaires.",
+    "tags": ["contenu", "editeur", "formatage"],
+    "hooks": {
+        "listens": ["render:description", "render:comment"]
+    }
+}

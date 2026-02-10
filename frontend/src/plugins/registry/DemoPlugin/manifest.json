@@ -1,0 +1,9 @@
+{
+    "name": "demo-timestamp",
+    "label": "Horodatage (Demo)",
+    "description": "Affiche \"Modifié il y a X min\" sur chaque carte. Plugin template richement commenté servant de tutoriel.",
+    "tags": ["demo", "developpeur", "carte"],
+    "hooks": {
+        "listens": ["card:updated", "card:created", "modal:addCard:opened", "board:afterLoad", "card:beforeRender"]
+    }
+}

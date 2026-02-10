@@ -1,0 +1,46 @@
+{
+    "name": "linear-sync",
+    "disabled": true,
+    "label": "Linear Sync",
+    "description": "Synchronise les issues Linear dans le board Kanban via l'API GraphQL.",
+    "tags": ["sync", "linear", "integration"],
+    "hooks": {
+        "provides": [
+            {
+                "name": "linearSync:synced",
+                "label": "Sync Linear terminee",
+                "category": "Linear",
+                "payload": {
+                    "created": "number — cartes creees",
+                    "updated": "number — cartes modifiees",
+                    "moved": "number — cartes deplacees"
+                },
+                "notification": {
+                    "type": "success",
+                    "duration": 3000,
+                    "template": "Linear : {created} creees, {updated} modifiees, {moved} deplacees",
+                    "variables": {
+                        "created": "created",
+                        "updated": "updated",
+                        "moved": "moved"
+                    }
+                }
+            },
+            {
+                "name": "linearSync:error",
+                "label": "Erreur de sync Linear",
+                "category": "Linear",
+                "payload": {
+                    "error": "string — message d'erreur"
+                },
+                "notification": {
+                    "type": "error",
+                    "duration": 5000,
+                    "template": "Linear : {error}",
+                    "variables": { "error": "error" }
+                }
+            }
+        ],
+        "listens": ["board:rendered", "board:willChange", "header:renderActions", "modal:boardSettings:opened"]
+    }
+}

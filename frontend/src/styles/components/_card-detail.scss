@@ -1,0 +1,528 @@
+@use '../mixins' as *;
+
+// Modale fullscreen de détail d'un ticket.
+// Overlay sombre + panneau large avec onglets (Info / Historique).
+
+// Hérite de .modal-overlay (position, inset, display, align, justify).
+// Seuls les overrides sont déclarés ici.
+.card-detail-overlay {
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+}
+
+.card-detail {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    width: calc(100vw - 48px);
+    height: calc(100vh - 48px);
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    @include mobile {
+        width: calc(100vw - 16px);
+        height: calc(100vh - 16px);
+        border-radius: var(--radius-md);
+    }
+
+    // — Header : titre + bouton fermer
+    &-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-bottom: 1px solid var(--color-border);
+
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+        }
+    }
+
+    &-header-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    &-edit-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        background: transparent;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        color: var(--color-text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        padding: var(--spacing-sm) var(--spacing-md);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+    }
+
+    &-delete-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        background: transparent;
+        border: 1px solid var(--color-danger, #e74c3c);
+        border-radius: var(--radius-md);
+        color: var(--color-danger, #e74c3c);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        padding: var(--spacing-sm) var(--spacing-md);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background: var(--color-danger, #e74c3c);
+            color: #fff;
+        }
+    }
+
+    &-close {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: var(--spacing-xs);
+        line-height: 1;
+        border-radius: var(--radius-sm);
+        transition:
+            color var(--transition-fast),
+            background var(--transition-fast);
+
+        &:hover {
+            color: var(--color-text);
+            background: var(--color-surface-hover);
+        }
+    }
+
+    // — Barre d'onglets
+    &-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    &-tab {
+        flex: 1;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--color-text-muted);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+            color var(--transition-fast),
+            border-color var(--transition-fast);
+
+        &:hover {
+            color: var(--color-text);
+        }
+
+        &--active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+    }
+
+    // — Zone de contenu scrollable
+    // min-height: 0 permet au flex-child de rétrécir sous la taille de son contenu,
+    // sans ça le contenu pousse la modale au-delà du max-height.
+    &-content {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: var(--spacing-lg);
+    }
+
+    // — Panneau générique (Info, Commentaires ou Historique)
+    // Par défaut masqué, l'onglet actif ajoute --active.
+    &-panel {
+        display: none;
+        flex-direction: column;
+        gap: var(--spacing-md);
+
+        &--active {
+            display: flex;
+        }
+    }
+
+    // — Champ label + valeur (panneau Info)
+    &-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    &-field-label {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    &-field-value {
+        font-size: var(--font-size-sm);
+        color: var(--color-text);
+        line-height: 1.5;
+    }
+
+    // — Badge utilisateur (avatar + nom)
+    &-user-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+
+    &-user-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    // — Tags dans le panneau Info
+    &-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+
+    &-tag {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 2px 10px;
+        border-radius: 10px;
+    }
+
+    // — Commentaires (panneau Commentaires)
+    &-comments {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    &-comments-empty {
+        color: var(--color-text-muted);
+        font-style: italic;
+        font-size: 0.85rem;
+        margin: 0;
+    }
+
+    &-comment {
+        border-left: 3px solid var(--color-primary);
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--color-surface-hover);
+        border-radius: var(--radius-md);
+    }
+
+    &-comment-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+
+    &-comment-author {
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: var(--color-text);
+    }
+
+    &-comment-date {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+    }
+
+    &-comment-text {
+        font-size: 0.85rem;
+        margin: var(--spacing-xs) 0 0 0;
+        color: var(--color-text);
+        line-height: 1.5;
+    }
+
+    &-comment-edit {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        font-size: 0.75rem;
+        cursor: pointer;
+        padding: 0;
+
+        &:hover {
+            color: var(--color-primary);
+        }
+    }
+
+    &-comment-edit-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-xs);
+    }
+
+    &-comment-edit-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--spacing-xs);
+    }
+
+    &-comment-cancel {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        color: var(--color-text-muted);
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            color: var(--color-text);
+        }
+    }
+
+    &-comment-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: var(--spacing-md);
+    }
+
+    &-comment-input {
+        width: 100%;
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        color: var(--color-text);
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-sm);
+        font-family: var(--font-family);
+        resize: vertical;
+        transition: border-color var(--transition-fast);
+
+        &::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        &:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+    }
+
+    &-comment-submit {
+        align-self: flex-end;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        background: var(--color-primary);
+        color: #fff;
+        border: 1px solid var(--color-primary);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background: var(--color-primary-hover);
+            border-color: var(--color-primary-hover);
+        }
+    }
+
+    // — Fichiers en attente (chips dans le formulaire commentaire)
+    &-comment-files-pending {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+
+    &-comment-file-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        background: var(--color-surface-hover);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 2px var(--spacing-sm);
+        font-size: 0.75rem;
+        color: var(--color-text);
+    }
+
+    &-comment-file-chip-remove {
+        background: none;
+        border: none;
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        cursor: pointer;
+        padding: 0 2px;
+        line-height: 1;
+
+        &:hover {
+            color: var(--color-danger, #e74c3c);
+        }
+    }
+
+    // — Barre d'actions du formulaire commentaire (📎 + Commenter)
+    &-comment-form-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    // — Fichiers joints rendus dans un commentaire
+    &-comment-files {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin-top: var(--spacing-xs);
+    }
+
+    &-comment-file-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 0.8rem;
+        color: var(--color-primary);
+        text-decoration: none;
+        padding: 2px 0;
+
+        &:hover {
+            text-decoration: underline;
+        }
+
+        &--loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    }
+
+    // — Timeline (panneau Historique)
+    &-timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        // Ligne verticale reliant les pastilles
+        position: relative;
+    }
+
+    &-timeline-item {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        grid-template-rows: auto auto;
+        gap: 0 var(--spacing-sm);
+        padding-bottom: var(--spacing-md);
+        position: relative;
+
+        // Ligne de connexion entre les dots
+        &::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 24px;
+            bottom: 0;
+            width: 2px;
+            background: var(--color-border);
+        }
+
+        // Pas de ligne pour le dernier élément
+        &:last-child::before {
+            display: none;
+        }
+    }
+
+    &-timeline-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-top: 4px;
+        justify-self: center;
+        grid-row: 1;
+        grid-column: 1;
+
+        &--created {
+            background: #44bb44;
+        }
+
+        &--updated {
+            background: var(--color-primary);
+        }
+
+        &--commented {
+            background: #ee9922;
+        }
+
+        &--moved {
+            background: #9966cc;
+        }
+    }
+
+    &-timeline-header {
+        grid-row: 1;
+        grid-column: 2;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    &-timeline-action {
+        font-size: 0.85rem;
+        color: var(--color-text);
+        font-weight: 500;
+    }
+
+    &-timeline-date {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+    }
+
+    &-timeline-changes {
+        grid-row: 2;
+        grid-column: 2;
+        list-style: none;
+        margin: var(--spacing-xs) 0 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        li {
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+            padding: 2px 0;
+        }
+    }
+}

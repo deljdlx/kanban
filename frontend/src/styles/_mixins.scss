@@ -1,0 +1,114 @@
+/**
+ * _mixins.scss — Mixins réutilisables pour la responsivité et utilitaires.
+ */
+
+// =========================================================
+// MEDIA QUERIES BREAKPOINTS
+// =========================================================
+
+// Mobile : 0px - 639px
+// Téléphones et petits appareils
+@mixin mobile {
+    @media (max-width: 639px) {
+        @content;
+    }
+}
+
+// Tablet : 640px - 1023px
+// Tablettes et petits laptops
+@mixin tablet {
+    @media (min-width: 640px) and (max-width: 1023px) {
+        @content;
+    }
+}
+
+// Tablet and up : 640px+
+// Tablettes et écrans plus larges
+@mixin tablet-up {
+    @media (min-width: 640px) {
+        @content;
+    }
+}
+
+// Desktop : 1024px - 1439px
+// Écrans standard
+@mixin desktop {
+    @media (min-width: 1024px) and (max-width: 1439px) {
+        @content;
+    }
+}
+
+// Desktop and up : 1024px+
+// Écrans larges
+@mixin desktop-up {
+    @media (min-width: 1024px) {
+        @content;
+    }
+}
+
+// Wide : 1440px+
+// Très grands écrans
+@mixin wide {
+    @media (min-width: 1440px) {
+        @content;
+    }
+}
+
+// Landscape orientation
+// Mode paysage sur mobiles/tablettes
+@mixin landscape {
+    @media (orientation: landscape) {
+        @content;
+    }
+}
+
+// Portrait orientation
+// Mode portrait sur mobiles/tablettes
+@mixin portrait {
+    @media (orientation: portrait) {
+        @content;
+    }
+}
+
+// =========================================================
+// UTILITAIRES
+// =========================================================
+
+// Flexbox avec direction responsive
+// Passe de column (mobile) à row (desktop)
+@mixin flex-responsive($mobile-direction: column, $desktop-direction: row) {
+    display: flex;
+    flex-direction: $mobile-direction;
+
+    @include desktop-up {
+        flex-direction: $desktop-direction;
+    }
+}
+
+// Grid responsive simple
+// Auto-wrap sur mobile, colonnes fixes sur desktop
+@mixin grid-auto-responsive($min-width: 250px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax($min-width, 1fr));
+    gap: var(--spacing-md);
+}
+
+// Texte responsive
+// Réduit sur mobile, normal sur desktop
+@mixin text-responsive($mobile-size: 0.85rem, $desktop-size: 0.95rem) {
+    font-size: $mobile-size;
+
+    @include tablet-up {
+        font-size: $desktop-size;
+    }
+}
+
+// Padding responsive
+// Moins d'espacements sur mobile
+@mixin padding-responsive($mobile: var(--spacing-md), $desktop: var(--spacing-lg)) {
+    padding: $mobile;
+
+    @include tablet-up {
+        padding: $desktop;
+    }
+}

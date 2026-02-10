@@ -1,0 +1,9 @@
+{
+    "name": "checklist",
+    "label": "Checklist",
+    "description": "Cartes checklist interactives (mini todo-list dans une carte)",
+    "tags": ["widget", "interactif", "productivite"],
+    "hooks": {
+        "listens": ["modal:addCard:opened", "card:renderBody", "modal:cardDetail:renderContent"]
+    }
+}

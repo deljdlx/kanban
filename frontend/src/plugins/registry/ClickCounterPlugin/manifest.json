@@ -1,0 +1,9 @@
+{
+    "name": "click-counter",
+    "label": "Compteur cliquable",
+    "description": "Permet de creer des cartes compteur cliquables (micro-app dans une carte)",
+    "tags": ["widget", "interactif", "demo"],
+    "hooks": {
+        "listens": ["modal:addCard:opened", "card:renderBody", "modal:cardDetail:renderContent"]
+    }
+}

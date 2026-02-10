@@ -1,0 +1,21 @@
+{
+    "name": "live-sync",
+    "label": "Synchronisation temps réel",
+    "description": "Synchronise le board entre onglets. Détecte les changements et applique les mises à jour automatiquement.",
+    "tags": ["core", "sync"],
+    "hooks": {
+        "provides": [
+            {
+                "name": "sync:applied",
+                "label": "Sync appliquée",
+                "category": "Sync",
+                "payload": {
+                    "entriesCount": "number — nombre d'entries appliquées",
+                    "fallback": "boolean — true si récupération par snapshot diff",
+                    "operations": "string[] — types d'opérations (ex: column:add, card:moved)"
+                }
+            }
+        ],
+        "listens": ["board:saved", "board:rendered"]
+    }
+}

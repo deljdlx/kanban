@@ -1,0 +1,54 @@
+{
+    "name": "board-notes",
+    "label": "Notes du board",
+    "description": "Ajoutez des notes et mémos à votre board (objectifs, décisions, ressources...)",
+    "tags": ["productivité", "organisation", "notes"],
+    "hooks": {
+        "provides": [
+            {
+                "name": "boardNotes:created",
+                "label": "Note créée",
+                "category": "Notes",
+                "payload": {
+                    "note": "Note { id, title, content, authorName, createdAt, updatedAt }",
+                    "board": "Board — le board parent"
+                },
+                "notification": {
+                    "type": "success",
+                    "template": "Note \"{title}\" créée",
+                    "variables": { "title": "note.displayTitle" }
+                }
+            },
+            {
+                "name": "boardNotes:updated",
+                "label": "Note modifiée",
+                "category": "Notes",
+                "payload": {
+                    "note": "Note { id, title, content, authorName, updatedAt } — version mise à jour",
+                    "oldNote": "Note — version précédente",
+                    "board": "Board — le board parent"
+                },
+                "notification": {
+                    "type": "info",
+                    "template": "Note \"{title}\" modifiée",
+                    "variables": { "title": "note.displayTitle" }
+                }
+            },
+            {
+                "name": "boardNotes:deleted",
+                "label": "Note supprimée",
+                "category": "Notes",
+                "payload": {
+                    "note": "Note { id, title, content, authorName } — note supprimée",
+                    "board": "Board — le board parent"
+                },
+                "notification": {
+                    "type": "info",
+                    "template": "Note \"{title}\" supprimée",
+                    "variables": { "title": "note.displayTitle" }
+                }
+            }
+        ],
+        "listens": ["board:rendered", "modal:boardSettings:opened"]
+    }
+}

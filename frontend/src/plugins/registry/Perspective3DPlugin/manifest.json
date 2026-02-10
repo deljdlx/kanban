@@ -1,0 +1,9 @@
+{
+    "name": "perspective-3d",
+    "label": "Perspective 3D",
+    "description": "Ajoute un effet de perspective 3D au board avec rotations et effets de survol.",
+    "tags": ["apparence", "3d", "animation", "fun"],
+    "hooks": {
+        "listens": ["board:rendered"]
+    }
+}

@@ -1,0 +1,36 @@
+{
+    "name": "toast",
+    "label": "Notifications Toast",
+    "description": "Affiche des notifications toast pour les actions importantes. Découvre automatiquement les hooks avec métadonnée notification.",
+    "priority": 99,
+    "tags": ["ui", "notification", "feedback"],
+    "hooks": {
+        "provides": [
+            {
+                "name": "toast:show",
+                "label": "Afficher un toast",
+                "category": "Toast",
+                "payload": {
+                    "message": "string — message à afficher",
+                    "type": "string — type : 'success' | 'error' | 'warning' | 'info' (défaut: 'info')",
+                    "duration": "number — durée en ms, 0 = permanent (optionnel)",
+                    "icon": "string | null — icône custom (optionnel)"
+                }
+            },
+            {
+                "name": "toast:hide",
+                "label": "Masquer un toast",
+                "category": "Toast",
+                "payload": {
+                    "id": "string — identifiant du toast à masquer"
+                }
+            },
+            {
+                "name": "toast:clear",
+                "label": "Supprimer tous les toasts",
+                "category": "Toast"
+            }
+        ],
+        "listens": ["*notification"]
+    }
+}

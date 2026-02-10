@@ -1,0 +1,19 @@
+{
+    "name": "command-palette",
+    "label": "Palette de commandes",
+    "description": "Ctrl+K / Cmd+K — Rechercher des cartes, exécuter des actions, filtrer et naviguer entre boards.",
+    "tags": ["navigation", "productivité"],
+    "priority": 10,
+    "hooks": {
+        "listens": [
+            "board:didChange",
+            "board:willChange",
+            "card:created",
+            "card:updated",
+            "card:deleted",
+            "card:moved",
+            "column:added",
+            "column:removed"
+        ]
+    }
+}
