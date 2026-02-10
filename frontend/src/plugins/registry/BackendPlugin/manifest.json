@@ -1,0 +1,11 @@
+{
+    "name": "backend",
+    "label": "Synchronisation Backend",
+    "description": "Connexion au backend Laravel. Active la synchronisation des boards, users, taxonomies et images avec le serveur.",
+    "tags": ["core", "sync", "backend"],
+    "priority": 5,
+    "hooks": {
+        "provides": [],
+        "listens": ["app:initialized", "auth:login", "auth:logout", "board:didChange"]
+    }
+}

@@ -45,6 +45,9 @@ import CustomFieldsPlugin from './CustomFieldsPlugin/index.js';
 // Sync multi-onglet
 import LiveSyncPlugin from './LiveSyncPlugin/index.js';
 
+// Sync backend
+import BackendPlugin from './BackendPlugin/index.js';
+
 // Animation
 import AnimationPlugin from './AnimationPlugin/index.js';
 
@@ -106,6 +109,9 @@ export default [
 
     // Sync multi-onglet
     LiveSyncPlugin,
+
+    // Sync backend
+    BackendPlugin,
 
     // Animation
     AnimationPlugin,
