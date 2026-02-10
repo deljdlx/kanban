@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('mime_type');
             $table->unsignedBigInteger('size');
             $table->timestamps();
-            
+
             $table->foreign('board_id')->references('id')->on('boards')->onDelete('cascade');
         });
     }

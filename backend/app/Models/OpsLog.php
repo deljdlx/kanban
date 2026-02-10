@@ -11,7 +11,7 @@ class OpsLog extends Model
     use HasFactory;
 
     protected $table = 'ops_log';
-    
+
     public $timestamps = false;
 
     protected $fillable = [

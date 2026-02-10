@@ -18,7 +18,7 @@ return new class extends Migration
             $table->json('ops');
             $table->uuid('user_id')->nullable();
             $table->timestamp('created_at');
-            
+
             $table->foreign('board_id')->references('id')->on('boards')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
             $table->index(['board_id', 'revision']);
