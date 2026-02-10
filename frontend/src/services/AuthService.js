@@ -11,6 +11,7 @@
  */
 import { isSoloMode } from '../config/appMode.js';
 import Container from '../Container.js';
+import Hooks from '../plugins/HookRegistry.js';
 
 /**
  * Clé sessionStorage pour la session auth.
@@ -143,6 +144,9 @@ class AuthService {
         this._userId = null;
         this._clearSession();
         sessionStorage.removeItem(TOKEN_KEY);
+
+        // Déclenche le hook auth:logout pour que les plugins puissent réagir
+        Hooks.doAction('auth:logout', {});
     }
 
     /**

@@ -349,6 +349,24 @@ const KNOWN_HOOKS = [
         },
     },
 
+    // ---------------------------------------------------------------
+    // Authentification
+    // ---------------------------------------------------------------
+    {
+        name: 'auth:login',
+        label: 'Connexion réussie',
+        category: 'Auth',
+        payload: {
+            userId: "string — ID de l'utilisateur connecté",
+        },
+    },
+    {
+        name: 'auth:logout',
+        label: 'Déconnexion',
+        category: 'Auth',
+        payload: {},
+    },
+
     // NB : les hooks sync:applied, workflow:ruleTriggered et workflow:ruleError
     // sont déclarés dans les manifest.json de leurs plugins respectifs
     // (LiveSyncPlugin, WorkflowPlugin). Le PluginManager les enregistre
