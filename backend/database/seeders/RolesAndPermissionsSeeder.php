@@ -38,15 +38,15 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Create roles and assign permissions
-        $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo(Permission::all());
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole->syncPermissions(Permission::all());
 
-        $memberRole = Role::create(['name' => 'member']);
-        $memberRole->givePermissionTo([
+        $memberRole = Role::firstOrCreate(['name' => 'member']);
+        $memberRole->syncPermissions([
             'board.view',
             'card.create',
             'card.edit',
@@ -58,8 +58,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'image.delete',
         ]);
 
-        $viewerRole = Role::create(['name' => 'viewer']);
-        $viewerRole->givePermissionTo([
+        $viewerRole = Role::firstOrCreate(['name' => 'viewer']);
+        $viewerRole->syncPermissions([
             'board.view',
             'comment.create',
             'comment.edit.own',

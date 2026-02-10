@@ -50,6 +50,7 @@ export default [
                 URL: 'readonly',
                 Blob: 'readonly',
                 FileReader: 'readonly',
+                FormData: 'readonly',
                 DragEvent: 'readonly',
                 ClipboardEvent: 'readonly',
                 KeyboardEvent: 'readonly',

@@ -21,12 +21,32 @@ const ImageStorage = {
      */
     _urlCache: new Map(),
 
+    /**
+     * Backend adapter pour sync des images (null = mode offline).
+     * @type {{ uploadImage: Function, downloadImage: Function, deleteImage: Function }|null}
+     */
+    _backendAdapter: null,
+
+    // ---------------------------------------------------------------
+    // Backend sync
+    // ---------------------------------------------------------------
+
+    /**
+     * Configure l'adapteur backend pour la sync des images.
+     *
+     * @param {{ uploadImage: Function, downloadImage: Function, deleteImage: Function }|null} adapter
+     */
+    setBackendAdapter(adapter) {
+        this._backendAdapter = adapter;
+    },
+
     // ---------------------------------------------------------------
     // CRUD
     // ---------------------------------------------------------------
 
     /**
      * Stocke une image dans IndexedDB.
+     * Si le backend est configuré, upload en parallèle.
      *
      * @param {Object} imageData
      * @param {Blob} imageData.blob - Blob de l'image
@@ -52,6 +72,13 @@ const ImageStorage = {
         };
 
         await db.put(STORES.IMAGES, record);
+
+        // Upload vers le backend en parallèle (fire-and-forget)
+        if (this._backendAdapter && navigator.onLine) {
+            this._backendAdapter
+                .uploadImage(id, blob, boardId, cardId, mimeType)
+                .catch((err) => console.warn('IndexedDBImageStorage: upload backend échoué', err));
+        }
 
         return id;
     },
@@ -94,6 +121,7 @@ const ImageStorage = {
 
     /**
      * Supprime une image.
+     * Si le backend est configuré, supprime aussi côté serveur.
      *
      * @param {string} imageId
      * @returns {Promise<boolean>}
@@ -108,6 +136,14 @@ const ImageStorage = {
         }
 
         await db.delete(STORES.IMAGES, imageId);
+
+        // Supprime du backend en parallèle (fire-and-forget)
+        if (this._backendAdapter && navigator.onLine) {
+            this._backendAdapter
+                .deleteImage(imageId)
+                .catch((err) => console.warn('IndexedDBImageStorage: suppression backend échouée', err));
+        }
+
         return true;
     },
 

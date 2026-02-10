@@ -11,12 +11,19 @@
  */
 import { isSoloMode } from '../config/appMode.js';
 import Container from '../Container.js';
+import Hooks from '../plugins/HookRegistry.js';
 
 /**
  * Clé sessionStorage pour la session auth.
  * @type {string}
  */
 const SESSION_KEY = 'kanban:auth:session';
+
+/**
+ * Clé sessionStorage pour le token Sanctum.
+ * @type {string}
+ */
+const TOKEN_KEY = 'kanban:auth:token';
 
 class AuthService {
     /**
@@ -37,10 +44,17 @@ class AuthService {
      */
     _redirectUrl;
 
+    /**
+     * URL du backend (null = mode local).
+     * @type {string|null}
+     */
+    _backendUrl;
+
     constructor() {
         this._authenticated = false;
         this._userId = null;
         this._redirectUrl = null;
+        this._backendUrl = null;
     }
 
     /**
@@ -66,11 +80,29 @@ class AuthService {
     }
 
     /**
+     * Active le mode backend et configure l'URL.
+     *
+     * @param {string} url - URL du backend (sans trailing slash)
+     */
+    setBackendUrl(url) {
+        this._backendUrl = url.replace(/\/+$/, '');
+    }
+
+    /**
+     * Retourne le token Sanctum courant.
+     *
+     * @returns {string|null}
+     */
+    getToken() {
+        return sessionStorage.getItem(TOKEN_KEY);
+    }
+
+    /**
      * Tente de connecter un utilisateur avec email + mot de passe.
      *
      * @param {string} email
-     * @param {string} password - Mot de passe en clair (hashé côté client)
-     * @returns {Promise<{ success: boolean, error?: string }>}
+     * @param {string} password - Mot de passe en clair (hashé côté client en mode local)
+     * @returns {Promise<{ success: boolean, error?: string, userId?: string }>}
      */
     async login(email, password) {
         const result = await this._authenticate(email, password);
@@ -79,18 +111,45 @@ class AuthService {
             this._authenticated = true;
             this._userId = result.userId;
             this._saveSession(result.userId);
+
+            // En mode backend, stocker le token
+            if (result.token) {
+                sessionStorage.setItem(TOKEN_KEY, result.token);
+            }
+
+            // Déclenche le hook auth:login pour que les plugins puissent réagir
+            Hooks.doAction('auth:login', { userId: result.userId });
         }
 
         return result;
     }
 
     /**
-     * Déconnecte l'utilisateur et redirige vers /login.
+     * Déconnecte l'utilisateur.
      */
-    logout() {
+    async logout() {
+        // En mode backend, appeler l'endpoint de logout
+        if (this._backendUrl && this.getToken()) {
+            try {
+                await fetch(`${this._backendUrl}/api/logout`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${this.getToken()}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+            } catch (error) {
+                console.warn('AuthService: erreur lors du logout backend', error);
+            }
+        }
+
         this._authenticated = false;
         this._userId = null;
         this._clearSession();
+        sessionStorage.removeItem(TOKEN_KEY);
+
+        // Déclenche le hook auth:logout pour que les plugins puissent réagir
+        Hooks.doAction('auth:logout', {});
     }
 
     /**
@@ -134,15 +193,61 @@ class AuthService {
     /**
      * Authentifie l'utilisateur.
      *
-     * Aujourd'hui : hash SHA-256 côté client + comparaison locale.
-     * Demain : remplacer par `fetch('/api/login', { method: 'POST', body })`.
+     * Mode local : hash SHA-256 côté client + comparaison locale.
+     * Mode backend : POST /api/login avec email + password en clair.
+     *
+     * @param {string} email
+     * @param {string} password
+     * @returns {Promise<{ success: boolean, userId?: string, token?: string, error?: string, fallbackToLocal?: boolean }>}
+     * @private
+     */
+    async _authenticate(email, password) {
+        // Mode backend
+        if (this._backendUrl) {
+            try {
+                const response = await fetch(`${this._backendUrl}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    return {
+                        success: false,
+                        error: error.message || 'Email ou mot de passe incorrect.',
+                    };
+                }
+
+                const data = await response.json();
+                return {
+                    success: true,
+                    userId: data.user?.id || 'backend-user',
+                    token: data.token,
+                };
+            } catch (error) {
+                // Backend injoignable - retourne une erreur explicite
+                console.error('AuthService: backend injoignable', error);
+                return {
+                    success: false,
+                    error: 'Backend injoignable. Vérifiez votre connexion ou contactez l\'administrateur.',
+                };
+            }
+        }
+
+        // Mode local
+        return await this._authenticateLocal(email, password);
+    }
+
+    /**
+     * Authentification locale (hash SHA-256 + comparaison).
      *
      * @param {string} email
      * @param {string} password
      * @returns {Promise<{ success: boolean, userId?: string, error?: string }>}
      * @private
      */
-    async _authenticate(email, password) {
+    async _authenticateLocal(email, password) {
         const hash = await this._hashPassword(password);
         const credentials = await this._fetchCredentials();
 
