@@ -116,6 +116,9 @@ class AuthService {
             if (result.token) {
                 sessionStorage.setItem(TOKEN_KEY, result.token);
             }
+
+            // Déclenche le hook auth:login pour que les plugins puissent réagir
+            Hooks.doAction('auth:login', { userId: result.userId });
         }
 
         return result;
@@ -195,7 +198,7 @@ class AuthService {
      *
      * @param {string} email
      * @param {string} password
-     * @returns {Promise<{ success: boolean, userId?: string, token?: string, error?: string }>}
+     * @returns {Promise<{ success: boolean, userId?: string, token?: string, error?: string, fallbackToLocal?: boolean }>}
      * @private
      */
     async _authenticate(email, password) {
@@ -223,9 +226,12 @@ class AuthService {
                     token: data.token,
                 };
             } catch (error) {
-                // Fallback sur le mode local si le backend est injoignable
-                console.warn('AuthService: backend injoignable, fallback mode local', error);
-                return await this._authenticateLocal(email, password);
+                // Backend injoignable - retourne une erreur explicite
+                console.error('AuthService: backend injoignable', error);
+                return {
+                    success: false,
+                    error: 'Backend injoignable. Vérifiez votre connexion ou contactez l\'administrateur.',
+                };
             }
         }
 

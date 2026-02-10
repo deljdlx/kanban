@@ -108,11 +108,6 @@ export default class BackendPlugin {
         // Charge la config depuis IndexedDB
         await this._loadConfig();
 
-        // Si enabled et un token existe, configure les services
-        if (this._config.enabled && AuthService.getToken()) {
-            this._configureServices();
-        }
-
         // Écoute les hooks
         this._handlers.onAppInitialized = () => this._onAppInitialized();
         hooks.addAction('app:initialized', this._handlers.onAppInitialized);
@@ -183,11 +178,8 @@ export default class BackendPlugin {
      * @private
      */
     _onAuthLogout() {
-        // Désactive le sync en repassant à NoOpBackendAdapter
-        if (Container.has('SyncService')) {
-            const syncService = Container.get('SyncService');
-            syncService.setAdapter(new NoOpBackendAdapter());
-        }
+        // Désactive le sync en repassant à NoOpBackendAdapter (import direct)
+        SyncService.setAdapter(new NoOpBackendAdapter());
 
         // Désactive le backend pour les images
         ImageStorage.setBackendAdapter(null);
@@ -219,11 +211,17 @@ export default class BackendPlugin {
         // Configure AuthService
         AuthService.setBackendUrl(backendUrl);
 
-        // Configure UserService
+        // Configure UserService et recharge les données
         UserService.setFetchUrl(`${backendUrl}/api/users`, getHeaders);
+        UserService.reload().catch((err) =>
+            console.warn('BackendPlugin: échec reload UserService', err),
+        );
 
-        // Configure TaxonomyService
+        // Configure TaxonomyService et recharge les données
         TaxonomyService.setFetchUrl(`${backendUrl}/api/taxonomies`, getHeaders);
+        TaxonomyService.reload().catch((err) =>
+            console.warn('BackendPlugin: échec reload TaxonomyService', err),
+        );
 
         // Configure SyncService
         this._adapter = new RestBackendAdapter({
@@ -267,17 +265,25 @@ export default class BackendPlugin {
         this._config = { ...this._config, ...updates };
         await StorageService.set(CONFIG_KEY, this._config);
 
-        // Si enabled change, configure/déconfigure les services
+        // Détermine si une reconfiguration est nécessaire
+        let needsReconfigure = false;
+
         if (updates.enabled !== undefined) {
             if (updates.enabled && AuthService.getToken()) {
-                this._configureServices();
+                needsReconfigure = true;
             } else if (!updates.enabled) {
                 this._onAuthLogout();
+                return; // Pas besoin de reconfigurer après logout
             }
         }
 
         // Si backendUrl ou pullInterval change et enabled, reconfigure
         if ((updates.backendUrl || updates.pullInterval) && this._config.enabled) {
+            needsReconfigure = true;
+        }
+
+        // Configure une seule fois à la fin
+        if (needsReconfigure) {
             this._configureServices();
         }
     }

@@ -82,6 +82,16 @@ class TaxonomyService extends EventEmitter {
     }
 
     /**
+     * Force un rechargement des taxonomies depuis le backend.
+     * Utile après configuration du backend ou changement d'URL.
+     *
+     * @returns {Promise<void>}
+     */
+    async reload() {
+        await this._loadStatic();
+    }
+
+    /**
      * Charge les taxonomies depuis l'API (backend ou mock local).
      *
      * @private

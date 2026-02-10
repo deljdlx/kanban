@@ -7,43 +7,43 @@ export const STYLES = `
     padding: 1rem;
 }
 
-.settings-section-title {
+.backend-settings .settings-section-title {
     margin: 0 0 0.5rem 0;
     font-size: 1.125rem;
     font-weight: 600;
 }
 
-.settings-description {
+.backend-settings .settings-description {
     margin: 0 0 1rem 0;
     font-size: 0.875rem;
     color: var(--color-text-muted);
 }
 
-.form-group {
+.backend-settings .backend-form-group {
     margin-bottom: 1rem;
 }
 
-.form-label {
+.backend-settings .backend-form-label {
     display: block;
     margin-bottom: 0.25rem;
     font-size: 0.875rem;
     font-weight: 500;
 }
 
-.test-result {
+.backend-settings .backend-test-result {
     margin-top: 0.5rem;
     padding: 0.5rem;
     border-radius: 4px;
     font-size: 0.875rem;
 }
 
-.test-result--success {
+.backend-settings .backend-test-result--success {
     background-color: rgba(16, 185, 129, 0.1);
     color: #10b981;
     border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.test-result--error {
+.backend-settings .backend-test-result--error {
     background-color: rgba(239, 68, 68, 0.1);
     color: #ef4444;
     border: 1px solid rgba(239, 68, 68, 0.3);

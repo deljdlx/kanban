@@ -92,6 +92,20 @@ class UserService {
     }
 
     /**
+     * Force un rechargement des utilisateurs depuis le backend.
+     * Utile après configuration du backend ou changement d'URL.
+     *
+     * @returns {Promise<void>}
+     */
+    async reload() {
+        if (isSoloMode()) {
+            await this._initSolo();
+        } else {
+            await this._initMulti();
+        }
+    }
+
+    /**
      * Init solo : charge le profil depuis IndexedDB et crée un seul user admin.
      *
      * @private

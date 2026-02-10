@@ -32,10 +32,10 @@ export function buildSettingsPanel(plugin) {
 
     // Toggle activer/désactiver
     const enabledGroup = document.createElement('div');
-    enabledGroup.className = 'form-group';
+    enabledGroup.className = 'backend-form-group';
 
     const enabledLabel = document.createElement('label');
-    enabledLabel.className = 'form-label';
+    enabledLabel.className = 'backend-form-label';
     const enabledCheckbox = document.createElement('input');
     enabledCheckbox.type = 'checkbox';
     enabledCheckbox.checked = plugin.getConfig().enabled;
@@ -44,9 +44,11 @@ export function buildSettingsPanel(plugin) {
         if (enabledCheckbox.checked) {
             urlInput.disabled = false;
             testBtn.disabled = false;
+            intervalInput.disabled = false;
         } else {
             urlInput.disabled = true;
             testBtn.disabled = true;
+            intervalInput.disabled = true;
         }
     });
 
@@ -57,11 +59,11 @@ export function buildSettingsPanel(plugin) {
 
     // Champ URL backend
     const urlGroup = document.createElement('div');
-    urlGroup.className = 'form-group';
+    urlGroup.className = 'backend-form-group';
 
     const urlLabel = document.createElement('label');
     urlLabel.textContent = 'URL du backend';
-    urlLabel.className = 'form-label';
+    urlLabel.className = 'backend-form-label';
 
     const urlInput = document.createElement('input');
     urlInput.type = 'text';
@@ -86,7 +88,7 @@ export function buildSettingsPanel(plugin) {
         testBtn.disabled = true;
         testBtn.textContent = 'Test en cours...';
         testResult.textContent = '';
-        testResult.className = 'test-result';
+        testResult.className = 'backend-test-result';
 
         const result = await plugin.testConnection();
 
@@ -94,10 +96,10 @@ export function buildSettingsPanel(plugin) {
         testBtn.textContent = 'Tester la connexion';
 
         if (result.success) {
-            testResult.className = 'test-result test-result--success';
+            testResult.className = 'backend-test-result backend-test-result--success';
             testResult.textContent = `✓ Connexion réussie (${result.user?.name || result.user?.email || 'utilisateur connecté'})`;
         } else {
-            testResult.className = 'test-result test-result--error';
+            testResult.className = 'backend-test-result backend-test-result--error';
             testResult.textContent = `✗ Échec : ${result.error}`;
         }
     });
@@ -105,16 +107,16 @@ export function buildSettingsPanel(plugin) {
 
     // Résultat du test
     const testResult = document.createElement('p');
-    testResult.className = 'test-result';
+    testResult.className = 'backend-test-result';
     container.appendChild(testResult);
 
     // Champ intervalle de pull
     const intervalGroup = document.createElement('div');
-    intervalGroup.className = 'form-group';
+    intervalGroup.className = 'backend-form-group';
 
     const intervalLabel = document.createElement('label');
     intervalLabel.textContent = 'Intervalle de synchronisation (secondes)';
-    intervalLabel.className = 'form-label';
+    intervalLabel.className = 'backend-form-label';
 
     const intervalInput = document.createElement('input');
     intervalInput.type = 'number';
@@ -122,6 +124,7 @@ export function buildSettingsPanel(plugin) {
     intervalInput.min = '10';
     intervalInput.max = '300';
     intervalInput.value = (plugin.getConfig().pullInterval || 30000) / 1000;
+    intervalInput.disabled = !plugin.getConfig().enabled;
     intervalInput.addEventListener('change', async () => {
         const seconds = parseInt(intervalInput.value, 10);
         if (seconds >= 10 && seconds <= 300) {

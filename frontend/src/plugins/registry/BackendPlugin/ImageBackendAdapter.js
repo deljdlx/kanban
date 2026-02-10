@@ -64,9 +64,10 @@ export default class ImageBackendAdapter {
      * GET {baseUrl}/api/images/{imageId}
      *
      * @param {string} imageId
+     * @param {string} boardId - ID du board (fourni par l'appelant)
      * @returns {Promise<Object|null>} Record { id, blob, boardId, cardId, mimeType, size, createdAt }
      */
-    async downloadImage(imageId) {
+    async downloadImage(imageId, boardId) {
         const headers = this._getHeaders();
 
         const response = await fetch(`${this._baseUrl}/api/images/${imageId}`, {
@@ -82,8 +83,7 @@ export default class ImageBackendAdapter {
         const blob = await response.blob();
         const mimeType = response.headers.get('Content-Type') || 'image/png';
 
-        // Récupère les métadonnées depuis les headers custom (si disponibles)
-        const boardId = response.headers.get('X-Board-Id') || 'unknown';
+        // Récupère cardId depuis les headers custom (si disponible)
         const cardId = response.headers.get('X-Card-Id') || null;
 
         return {

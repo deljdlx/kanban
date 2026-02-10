@@ -2,15 +2,14 @@
  * LoginView — Écran de connexion pour le mode multi.
  *
  * Affiche un formulaire email + mot de passe centré sur la page.
- * Après login réussi, définit l'utilisateur courant dans UserService,
- * déclenche le hook auth:login et redirige vers l'URL mémorisée (ou /).
+ * Après login réussi, définit l'utilisateur courant dans UserService
+ * et redirige vers l'URL mémorisée (ou /).
  *
  * Même pattern que HomeView : constructeur, render(container), destroy().
  */
 import AuthService from '../services/AuthService.js';
 import UserService from '../services/UserService.js';
 import Router from '../services/Router.js';
-import Hooks from '../plugins/HookRegistry.js';
 
 export default class LoginView {
     /**
@@ -192,9 +191,6 @@ export default class LoginView {
             if (result.success) {
                 // Met à jour l'utilisateur courant dans UserService
                 UserService.setCurrentUser(AuthService.getUserId());
-
-                // Déclenche le hook auth:login pour que les plugins puissent réagir
-                Hooks.doAction('auth:login', { userId: AuthService.getUserId() });
 
                 // Redirige vers l'URL mémorisée ou /
                 const redirectUrl = AuthService.consumeRedirectUrl() || '/';

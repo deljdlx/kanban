@@ -85,30 +85,13 @@ const ImageStorage = {
 
     /**
      * Récupère une image par son ID.
-     * Si absente en IndexedDB et backend configuré, tente de la télécharger.
      *
      * @param {string} imageId
      * @returns {Promise<Object|null>}
      */
     async get(imageId) {
         const db = await getDB();
-        let record = await db.get(STORES.IMAGES, imageId);
-
-        // Si pas en local et backend configuré, tente de télécharger
-        if (!record && this._backendAdapter && navigator.onLine) {
-            try {
-                const downloaded = await this._backendAdapter.downloadImage(imageId);
-                if (downloaded) {
-                    // Stocke en IndexedDB pour cache
-                    await db.put(STORES.IMAGES, downloaded);
-                    record = downloaded;
-                }
-            } catch (err) {
-                console.warn('IndexedDBImageStorage: download backend échoué', err);
-            }
-        }
-
-        return record || null;
+        return (await db.get(STORES.IMAGES, imageId)) || null;
     },
 
     /**

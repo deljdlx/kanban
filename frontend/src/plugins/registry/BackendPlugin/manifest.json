@@ -6,6 +6,6 @@
     "priority": 5,
     "hooks": {
         "provides": [],
-        "listens": ["app:initialized", "auth:login", "auth:logout", "board:didChange"]
+        "listens": ["app:initialized", "auth:login", "auth:logout"]
     }
 }
