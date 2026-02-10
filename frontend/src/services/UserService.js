@@ -43,10 +43,24 @@ class UserService {
      */
     _currentUser;
 
+    /**
+     * URL de fetch pour le backend (null = mode local).
+     * @type {string|null}
+     */
+    _fetchUrl;
+
+    /**
+     * Fonction retournant les headers HTTP pour le backend.
+     * @type {(() => Object)|null}
+     */
+    _getHeaders;
+
     constructor() {
         this._users = [];
         this._loaded = false;
         this._currentUser = null;
+        this._fetchUrl = null;
+        this._getHeaders = null;
     }
 
     /**
@@ -64,6 +78,17 @@ class UserService {
         }
 
         this._loaded = true;
+    }
+
+    /**
+     * Configure l'URL de fetch pour le backend.
+     *
+     * @param {string} url - URL complète de l'endpoint users
+     * @param {() => Object} getHeaders - Fonction retournant les headers HTTP
+     */
+    setFetchUrl(url, getHeaders) {
+        this._fetchUrl = url;
+        this._getHeaders = getHeaders;
     }
 
     /**
@@ -93,13 +118,35 @@ class UserService {
      */
     async _initMulti() {
         try {
-            const response = await fetch('/api/users.json');
+            const url = this._fetchUrl || '/api/users.json';
+            const headers = this._getHeaders ? this._getHeaders() : {};
+
+            const response = await fetch(url, { headers });
             if (!response.ok) throw new Error('HTTP ' + response.status);
+
             const data = await response.json();
-            this._users = data.users || [];
+
+            // Support backend paginé (data.data) ou mock local (data.users)
+            this._users = data.data || data.users || [];
         } catch (error) {
             console.warn('UserService : impossible de charger les utilisateurs', error);
-            this._users = [];
+
+            // Fallback sur le mock local si le backend échoue
+            if (this._fetchUrl) {
+                try {
+                    const response = await fetch('/api/users.json');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this._users = data.users || [];
+                    } else {
+                        this._users = [];
+                    }
+                } catch (_fallbackError) {
+                    this._users = [];
+                }
+            } else {
+                this._users = [];
+            }
         }
 
         // L'utilisateur courant est déterminé par la session AuthService

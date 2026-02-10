@@ -34,11 +34,25 @@ class TaxonomyService extends EventEmitter {
      */
     _loaded;
 
+    /**
+     * URL de fetch pour le backend (null = mode local).
+     * @type {string|null}
+     */
+    _fetchUrl;
+
+    /**
+     * Fonction retournant les headers HTTP pour le backend.
+     * @type {(() => Object)|null}
+     */
+    _getHeaders;
+
     constructor() {
         super();
         this._staticTaxonomies = {};
         this._dynamicTaxonomies = {};
         this._loaded = false;
+        this._fetchUrl = null;
+        this._getHeaders = null;
     }
 
     /**
@@ -51,17 +65,82 @@ class TaxonomyService extends EventEmitter {
             return;
         }
 
-        try {
-            const response = await fetch('/api/taxonomies.json');
-            if (!response.ok) throw new Error('HTTP ' + response.status);
-            const data = await response.json();
-            this._staticTaxonomies = data.taxonomies || {};
-        } catch (error) {
-            console.warn('TaxonomyService : impossible de charger les taxonomies', error);
-            this._staticTaxonomies = {};
-        }
+        await this._loadStatic();
 
         this._loaded = true;
+    }
+
+    /**
+     * Configure l'URL de fetch pour le backend.
+     *
+     * @param {string} url - URL complète de l'endpoint taxonomies
+     * @param {() => Object} getHeaders - Fonction retournant les headers HTTP
+     */
+    setFetchUrl(url, getHeaders) {
+        this._fetchUrl = url;
+        this._getHeaders = getHeaders;
+    }
+
+    /**
+     * Charge les taxonomies depuis l'API (backend ou mock local).
+     *
+     * @private
+     */
+    async _loadStatic() {
+        try {
+            const url = this._fetchUrl || '/api/taxonomies.json';
+            const headers = this._getHeaders ? this._getHeaders() : {};
+
+            const response = await fetch(url, { headers });
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+
+            const data = await response.json();
+
+            // Backend retourne un tableau [{ key, label, terms }]
+            // Mock local retourne { taxonomies: { [key]: { label, terms } } }
+            if (Array.isArray(data)) {
+                this._staticTaxonomies = this._transformBackendArray(data);
+            } else {
+                this._staticTaxonomies = data.taxonomies || {};
+            }
+        } catch (error) {
+            console.warn('TaxonomyService : impossible de charger les taxonomies', error);
+
+            // Fallback sur le mock local si le backend échoue
+            if (this._fetchUrl) {
+                try {
+                    const response = await fetch('/api/taxonomies.json');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this._staticTaxonomies = data.taxonomies || {};
+                    } else {
+                        this._staticTaxonomies = {};
+                    }
+                } catch (_fallbackError) {
+                    this._staticTaxonomies = {};
+                }
+            } else {
+                this._staticTaxonomies = {};
+            }
+        }
+    }
+
+    /**
+     * Transforme un tableau backend en map.
+     *
+     * @param {Array<{ key: string, label: string, terms: Object }>} array
+     * @returns {Object<string, { label: string, terms: Object }>}
+     * @private
+     */
+    _transformBackendArray(array) {
+        const map = {};
+        for (const item of array) {
+            map[item.key] = {
+                label: item.label,
+                terms: item.terms || {},
+            };
+        }
+        return map;
     }
 
     // ---------------------------------------------------------------
