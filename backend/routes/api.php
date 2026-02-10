@@ -45,9 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Images
     Route::post('/boards/{boardId}/images', [ImageController::class, 'upload'])
         ->middleware('can:image.upload');
+    Route::get('/images/{id}', [ImageController::class, 'show']);
     Route::delete('/images/{id}', [ImageController::class, 'destroy'])
         ->middleware('can:image.delete');
 });
-
-// Public image viewing (no auth required for viewing images)
-Route::get('/images/{id}', [ImageController::class, 'show']);

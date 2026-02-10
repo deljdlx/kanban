@@ -23,11 +23,8 @@ class ImageController extends Controller
         $board = Board::findOrFail($boardId);
 
         $file = $request->file('image');
-        $filename = uniqid().'.'.$file->getClientOriginalExtension();
-        $path = "images/{$boardId}/{$filename}";
-
-        // Store original image
-        Storage::put($path, file_get_contents($file));
+        $filename = \Illuminate\Support\Str::uuid().'.'.$file->extension();
+        $path = $file->storeAs("images/{$boardId}", $filename);
 
         $image = Image::create([
             'board_id' => $boardId,

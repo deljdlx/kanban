@@ -17,12 +17,21 @@ class BoardOpsController extends Controller
     {
         $request->validate([
             'ops' => 'required|array',
+            'ops.*.type' => 'required|string',
             'clientRevision' => 'required|integer',
         ]);
 
-        $board = Board::findOrFail($id);
+        return DB::transaction(function () use ($request, $id) {
+            $board = Board::lockForUpdate()->findOrFail($id);
 
-        DB::transaction(function () use ($request, $board) {
+            // Check for conflict
+            if ($request->clientRevision !== $board->server_revision) {
+                return response()->json([
+                    'error' => 'conflict',
+                    'serverRevision' => $board->server_revision,
+                ], 409);
+            }
+
             // Increment server revision
             $board->server_revision++;
 
@@ -43,11 +52,11 @@ class BoardOpsController extends Controller
 
             $board->data = $data;
             $board->save();
-        });
 
-        return response()->json([
-            'serverRevision' => $board->server_revision,
-        ]);
+            return response()->json([
+                'serverRevision' => $board->server_revision,
+            ]);
+        });
     }
 
     /**
@@ -55,7 +64,8 @@ class BoardOpsController extends Controller
      */
     public function pullOps(Request $request, $id)
     {
-        $sinceRevision = $request->get('since', 0);
+        $request->validate(['since' => 'integer|min:0']);
+        $sinceRevision = (int) $request->get('since', 0);
 
         $board = Board::findOrFail($id);
 
@@ -165,6 +175,10 @@ class BoardOpsController extends Controller
                         }
                     }
                 }
+                break;
+
+            default:
+                \Log::warning("BoardOps: type d'opération inconnu: {$type}");
                 break;
         }
 

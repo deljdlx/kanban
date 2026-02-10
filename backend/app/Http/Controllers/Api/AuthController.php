@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Login with email and SHA-256 hashed password.
+     * Login with email and password.
      */
     public function login(Request $request)
     {

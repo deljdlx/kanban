@@ -68,23 +68,25 @@ class BoardController extends Controller
             'data' => 'sometimes|array',
         ]);
 
-        $board = Board::findOrFail($id);
+        return DB::transaction(function () use ($request, $id) {
+            $board = Board::lockForUpdate()->findOrFail($id);
 
-        if ($request->has('data')) {
-            $board->data = $request->data;
-            $board->server_revision++;
-        }
+            if ($request->has('data')) {
+                $board->data = $request->data;
+                $board->server_revision++;
+            }
 
-        if ($request->has('name')) {
-            $board->name = $request->name;
-        }
+            if ($request->has('name')) {
+                $board->name = $request->name;
+            }
 
-        $board->save();
+            $board->save();
 
-        return response()->json([
-            'serverRevision' => $board->server_revision,
-            'board' => $board,
-        ]);
+            return response()->json([
+                'serverRevision' => $board->server_revision,
+                'board' => $board,
+            ]);
+        });
     }
 
     /**
