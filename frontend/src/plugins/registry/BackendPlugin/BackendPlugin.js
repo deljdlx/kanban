@@ -40,6 +40,8 @@ import TaxonomyService from '../../../services/TaxonomyService.js';
 import SyncService from '../../../sync/SyncService.js';
 import RestBackendAdapter from '../../../sync/RestBackendAdapter.js';
 import { NoOpBackendAdapter } from '../../../sync/BackendAdapter.js';
+import ImageStorage from '../../../services/storage/IndexedDBImageStorage.js';
+import ImageBackendAdapter from './ImageBackendAdapter.js';
 
 /** Clé IndexedDB pour la config du plugin */
 const CONFIG_KEY = 'backend:config';
@@ -65,6 +67,12 @@ export default class BackendPlugin {
     _adapter;
 
     /**
+     * Adapteur backend pour les images.
+     * @type {ImageBackendAdapter|null}
+     */
+    _imageAdapter;
+
+    /**
      * Référence au hook registry.
      * @type {import('../../HookRegistry.js').default|null}
      */
@@ -79,6 +87,7 @@ export default class BackendPlugin {
     constructor() {
         this._config = { ...DEFAULT_CONFIG };
         this._adapter = null;
+        this._imageAdapter = null;
         this._hooksRegistry = null;
         this._handlers = {};
     }
@@ -179,6 +188,9 @@ export default class BackendPlugin {
             const syncService = Container.get('SyncService');
             syncService.setAdapter(new NoOpBackendAdapter());
         }
+
+        // Désactive le backend pour les images
+        ImageStorage.setBackendAdapter(null);
     }
 
     // ---------------------------------------------------------------
@@ -221,6 +233,13 @@ export default class BackendPlugin {
         });
         SyncService.setAdapter(this._adapter);
         SyncService.setPullInterval(this._config.pullInterval);
+
+        // Configure ImageStorage
+        this._imageAdapter = new ImageBackendAdapter({
+            baseUrl: backendUrl,
+            getHeaders,
+        });
+        ImageStorage.setBackendAdapter(this._imageAdapter);
 
         console.warn('BackendPlugin: services configurés avec', backendUrl);
     }
