@@ -19,6 +19,7 @@ graph TB
     subgraph Pages["Pages (une seule active)"]
         style Pages fill:#dbeafe,stroke:#2563eb,color:#1e1b4b
         LOGIN["LoginView<br/><i>Écran de connexion</i>"]
+        REGISTER["RegisterView<br/><i>Écran d'inscription</i>"]
         HOME["HomeView<br/><i>Liste des boards</i>"]
         EXPLORER["ExplorerView<br/><i>Debug IndexedDB</i>"]
         BOARD["BoardView<br/><i>Plateau Kanban</i>"]
@@ -38,6 +39,7 @@ graph TB
     end
 
     APP --> LOGIN
+    APP --> REGISTER
     APP --> HOME
     APP --> EXPLORER
     APP --> BOARD
@@ -55,7 +57,8 @@ graph TB
 - [`src/views/CardView.js`](../src/views/CardView.js) — Rendu d'une carte individuelle
 - [`src/views/HeaderView.js`](../src/views/HeaderView.js) — Barre d'en-tete board-specifique
 - [`src/views/LoginView.js`](../src/views/LoginView.js) — Écran de connexion (mode multi)
-- [`src/views/HomeView.js`](../src/views/HomeView.js) — Page d'accueil avec grille de boards + bouton import
+- [`src/views/RegisterView.js`](../src/views/RegisterView.js) — Écran d'inscription (mode multi)
+- [`src/views/HomeView.js`](../src/views/HomeView.js) — Page d'accueil avec grille de boards + boutons import et parametres app. En mode local, affiche une grille unique. En mode backend (StorageDriver distant actif), affiche deux sections : "Boards distants" (depuis le backend) et "Boards locaux" (depuis IndexedDB). Les sections vides sont masquees
 - [`src/views/ExplorerView.js`](../src/views/ExplorerView.js) — Explorateur IndexedDB (debug)
 
 ---
@@ -124,6 +127,7 @@ div.login
         input.input          type=password
       p.login-error.hidden   (message d'erreur)
       button.btn.btn--primary.btn--lg.login-submit  "Se connecter"
+      a.login-link           "Pas encore de compte ? S'inscrire" → /register
 ```
 
 **Classes CSS** (dans `_login.scss`) :
@@ -135,10 +139,48 @@ div.login
 | `.login-form` | Layout formulaire avec gap |
 | `.login-error` | `--color-danger`, font-size small, caché par défaut via `.hidden` |
 | `.login-submit` | Bouton full-width |
+| `.login-link` | Lien centré sous le bouton submit |
+| `.login-success` | `--color-success`, font-size small, caché par défaut via `.hidden` |
 
 **Flux login** : submit → `AuthService.login(email, pwd)` → succès → `UserService.setCurrentUser(userId)` → `Router.navigate(redirectUrl || '/')`
 
 **Fichier** : [`src/views/LoginView.js`](../src/views/LoginView.js)
+
+---
+
+## RegisterView (mode multi)
+
+Écran d'inscription accessible depuis LoginView. Envoie les données au backend via `POST /api/register`. Après succès, redirige vers `/login`.
+
+**Structure DOM** :
+```
+div.login
+  div.login-card
+    h1.login-title          "Inscription"
+    div.login-form
+      div.form-group
+        label               "Nom"
+        input.input          type=text, autofocus
+      div.form-group
+        label               "Email"
+        input.input          type=email
+      div.form-group
+        label               "Mot de passe"
+        input.input          type=password
+      div.form-group
+        label               "Confirmer le mot de passe"
+        input.input          type=password
+      p.login-error.hidden   (message d'erreur)
+      p.login-success.hidden (message de succès)
+      button.btn.btn--primary.btn--lg.login-submit  "S'inscrire"
+      a.login-link           "Déjà un compte ? Se connecter" → /login
+```
+
+**Validation côté client** : champs vides, format email, mot de passe >= 8 caractères, mots de passe identiques.
+
+**Flux inscription** : submit → `httpClient.requestRaw('POST', '/api/register', data)` → succès → message de succès → redirect `/login` (après 1.5s)
+
+**Fichier** : [`src/views/RegisterView.js`](../src/views/RegisterView.js)
 
 ---
 
@@ -218,6 +260,7 @@ graph TB
         MDel["ModalConfirmDelete"]
         MDelCol["ModalDeleteColumn"]
         MBS["ModalBoardSettings"]
+        MAS["ModalAppSettings"]
         MPS["ModalPluginSettings"]
     end
 
@@ -228,6 +271,7 @@ graph TB
     BASE --> MDel
     BASE --> MDelCol
     BASE --> MBS
+    BASE --> MAS
     BASE --> MPS
 
     style BASE fill:#f3e8ff,stroke:#7c3aed,color:#1e1b4b
@@ -238,6 +282,7 @@ graph TB
     style MDel fill:#ffe4e6,stroke:#e11d48,color:#1e1b4b
     style MDelCol fill:#ffe4e6,stroke:#e11d48,color:#1e1b4b
     style MBS fill:#dcfce7,stroke:#16a34a,color:#1e1b4b
+    style MAS fill:#dcfce7,stroke:#16a34a,color:#1e1b4b
     style MPS fill:#dcfce7,stroke:#16a34a,color:#1e1b4b
 ```
 
@@ -617,9 +662,23 @@ graph LR
 
 ---
 
+## ModalAppSettings — Parametres de l'application
+
+Modale globale (non liee a un board) accessible depuis HomeView et HeaderView via le bouton "Parametres". Meme structure DOM que ModalBoardSettings (sidebar tabs + contenu).
+
+**Onglets built-in** :
+- **Profil** (solo mode uniquement) : `ProfilePanel`
+- **Plugins** : `PluginsPanel('app')` — affiche uniquement les 12 plugins a scope `app`
+
+**Hook** : `modal:appSettings:opened` — permet aux plugins d'ajouter des onglets via `registerTab(id, label, buildPanel)`.
+
+**Fichier** : [`src/views/ModalAppSettings.js`](../src/views/ModalAppSettings.js)
+
+---
+
 ## Onglet Profil (ProfilePanel — solo mode)
 
-En mode solo, un onglet "Profil" est insere entre "General" et "Plugins" dans `ModalBoardSettings`.
+En mode solo, un onglet "Profil" est affiche dans `ModalAppSettings`.
 
 | Element | Classe CSS | Description |
 |---|---|---|
@@ -656,7 +715,7 @@ Les elements conserves : avatar/nom dans le header, noms dans HistoryPanel et Co
 
 ## Onglet Plugins (PluginsPanel)
 
-L'onglet "Plugins" de `ModalBoardSettings` affiche la liste des plugins avec des onglets horizontaux pour filtrer par catégorie.
+L'onglet "Plugins" de `ModalBoardSettings` et `ModalAppSettings` affiche la liste des plugins avec des onglets horizontaux pour filtrer par catégorie. Le constructeur accepte un parametre `scope` (`'app'` ou `'board'`) pour filtrer les plugins affiches.
 
 | Element | Classe CSS | Description |
 |---|---|---|

@@ -44,23 +44,16 @@ class UserService {
     _currentUser;
 
     /**
-     * URL de fetch pour le backend (null = mode local).
-     * @type {string|null}
+     * Client HTTP centralisé pour les appels backend (null = mode local).
+     * @type {import('./BackendHttpClient.js').BackendHttpClient|null}
      */
-    _fetchUrl;
-
-    /**
-     * Fonction retournant les headers HTTP pour le backend.
-     * @type {(() => Object)|null}
-     */
-    _getHeaders;
+    _httpClient;
 
     constructor() {
         this._users = [];
         this._loaded = false;
         this._currentUser = null;
-        this._fetchUrl = null;
-        this._getHeaders = null;
+        this._httpClient = null;
     }
 
     /**
@@ -81,14 +74,12 @@ class UserService {
     }
 
     /**
-     * Configure l'URL de fetch pour le backend.
+     * Configure le client HTTP pour les appels backend.
      *
-     * @param {string} url - URL complète de l'endpoint users
-     * @param {() => Object} getHeaders - Fonction retournant les headers HTTP
+     * @param {import('./BackendHttpClient.js').BackendHttpClient|null} httpClient
      */
-    setFetchUrl(url, getHeaders) {
-        this._fetchUrl = url;
-        this._getHeaders = getHeaders;
+    setHttpClient(httpClient) {
+        this._httpClient = httpClient;
     }
 
     /**
@@ -126,27 +117,28 @@ class UserService {
 
     /**
      * Init multi : charge les utilisateurs depuis l'API.
-     * L'utilisateur courant est déterminé par AuthService (plus de fetch de me.json).
+     * Si httpClient est configuré, utilise le backend. Sinon, mock local.
+     * L'utilisateur courant est déterminé par AuthService.
      *
      * @private
      */
     async _initMulti() {
         try {
-            const url = this._fetchUrl || '/api/users.json';
-            const headers = this._getHeaders ? this._getHeaders() : {};
-
-            const response = await fetch(url, { headers });
-            if (!response.ok) throw new Error('HTTP ' + response.status);
-
-            const data = await response.json();
-
-            // Support backend paginé (data.data) ou mock local (data.users)
-            this._users = data.data || data.users || [];
+            if (this._httpClient) {
+                const data = await this._httpClient.get('/api/users');
+                // Support backend paginé (data.data) ou format simple (data.users)
+                this._users = data.data || data.users || [];
+            } else {
+                const response = await fetch('/api/users.json');
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const data = await response.json();
+                this._users = data.users || [];
+            }
         } catch (error) {
             console.warn('UserService : impossible de charger les utilisateurs', error);
 
             // Fallback sur le mock local si le backend échoue
-            if (this._fetchUrl) {
+            if (this._httpClient) {
                 try {
                     const response = await fetch('/api/users.json');
                     if (response.ok) {

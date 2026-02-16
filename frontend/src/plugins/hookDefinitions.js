@@ -277,6 +277,11 @@ const KNOWN_HOOKS = [
     //   - handled : mettre à true pour bloquer le rendu standard
     'modal:cardDetail:renderContent',
 
+    // modal:appSettings:opened context:
+    //   - registerTab(id, label, buildPanel) : enregistre un onglet dans la modale
+    //   - onClose(fn) : enregistre un callback de nettoyage
+    'modal:appSettings:opened',
+
     // modal:boardSettings:opened context:
     //   - registerTab(id, label, buildPanel) : enregistre un onglet dans la modale
     //   - board : instance du Board
@@ -361,8 +366,20 @@ const KNOWN_HOOKS = [
         },
     },
     {
+        name: 'auth:beforeLogout',
+        label: 'Avant déconnexion (token encore disponible)',
+        category: 'Auth',
+        payload: {},
+    },
+    {
         name: 'auth:logout',
         label: 'Déconnexion',
+        category: 'Auth',
+        payload: {},
+    },
+    {
+        name: 'auth:tokenExpired',
+        label: 'Token expiré (401 intercepté)',
         category: 'Auth',
         payload: {},
     },

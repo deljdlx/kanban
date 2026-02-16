@@ -12,6 +12,7 @@
 import { isSoloMode } from '../config/appMode.js';
 import Container from '../Container.js';
 import Hooks from '../plugins/HookRegistry.js';
+import httpClient from './BackendHttpClient.js';
 
 /**
  * Clé sessionStorage pour la session auth.
@@ -44,17 +45,10 @@ class AuthService {
      */
     _redirectUrl;
 
-    /**
-     * URL du backend (null = mode local).
-     * @type {string|null}
-     */
-    _backendUrl;
-
     constructor() {
         this._authenticated = false;
         this._userId = null;
         this._redirectUrl = null;
-        this._backendUrl = null;
     }
 
     /**
@@ -77,15 +71,6 @@ class AuthService {
                 sessionStorage.removeItem(SESSION_KEY);
             }
         }
-    }
-
-    /**
-     * Active le mode backend et configure l'URL.
-     *
-     * @param {string} url - URL du backend (sans trailing slash)
-     */
-    setBackendUrl(url) {
-        this._backendUrl = url.replace(/\/+$/, '');
     }
 
     /**
@@ -117,8 +102,9 @@ class AuthService {
                 sessionStorage.setItem(TOKEN_KEY, result.token);
             }
 
-            // Déclenche le hook auth:login pour que les plugins puissent réagir
-            Hooks.doAction('auth:login', { userId: result.userId });
+            // Déclenche le hook auth:login et attend que tous les plugins
+            // aient fini leur configuration (ex: BackendPlugin recharge UserService).
+            await Hooks.doActionAsync('auth:login', { userId: result.userId });
         }
 
         return result;
@@ -126,29 +112,24 @@ class AuthService {
 
     /**
      * Déconnecte l'utilisateur.
+     *
+     * Déclenche auth:beforeLogout (async) avant le cleanup pour permettre
+     * aux plugins de faire des appels backend (ex: POST /api/logout)
+     * tant que le token est encore disponible.
      */
     async logout() {
-        // En mode backend, appeler l'endpoint de logout
-        if (this._backendUrl && this.getToken()) {
-            try {
-                await fetch(`${this._backendUrl}/api/logout`, {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${this.getToken()}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-            } catch (error) {
-                console.warn('AuthService: erreur lors du logout backend', error);
-            }
-        }
+        // Hook avant cleanup (async) — attend que BackendPlugin ait fini
+        // POST /api/logout tant que le token est encore disponible.
+        await Hooks.doActionAsync('auth:beforeLogout', {});
 
         this._authenticated = false;
         this._userId = null;
         this._clearSession();
         sessionStorage.removeItem(TOKEN_KEY);
 
-        // Déclenche le hook auth:logout pour que les plugins puissent réagir
+        // auth:logout utilise doAction (sync) intentionnellement :
+        // le token et la session sont deja nettoyes, les plugins n'ont plus
+        // besoin de faire des appels backend — juste du cleanup local.
         Hooks.doAction('auth:logout', {});
     }
 
@@ -194,30 +175,27 @@ class AuthService {
      * Authentifie l'utilisateur.
      *
      * Mode local : hash SHA-256 côté client + comparaison locale.
-     * Mode backend : POST /api/login avec email + password en clair.
+     * Mode backend : POST /api/login via BackendHttpClient.
+     *
+     * Le login n'a pas besoin de token (pas encore authentifié),
+     * mais utilise le httpClient pour bénéficier de l'URL centralisée et du timeout.
      *
      * @param {string} email
      * @param {string} password
-     * @returns {Promise<{ success: boolean, userId?: string, token?: string, error?: string, fallbackToLocal?: boolean }>}
+     * @returns {Promise<{ success: boolean, userId?: string, token?: string, error?: string }>}
      * @private
      */
     async _authenticate(email, password) {
-        // Mode backend
-        if (this._backendUrl) {
+        // Mode backend — httpClient configuré avec baseUrl par BackendPlugin
+        if (httpClient.isConfigured()) {
             try {
-                const response = await fetch(`${this._backendUrl}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
-                });
-
-                if (!response.ok) {
-                    const error = await response.json().catch(() => ({}));
-                    return {
-                        success: false,
-                        error: error.message || 'Email ou mot de passe incorrect.',
-                    };
-                }
+                // Login est un cas spécial : un 401 signifie "mauvais credentials",
+                // pas "token expiré". skipTokenExpired empeche le hook auth:tokenExpired
+                // de se declencher si l'utilisateur a encore un token d'une session precedente.
+                const response = await httpClient.requestRaw('POST', '/api/login', {
+                    email,
+                    password,
+                }, { skipTokenExpired: true });
 
                 const data = await response.json();
                 return {
@@ -226,7 +204,14 @@ class AuthService {
                     token: data.token,
                 };
             } catch (error) {
-                // Backend injoignable - retourne une erreur explicite
+                // 401 du login = mauvais credentials (pas un token expiré)
+                if (error.message.includes('401')) {
+                    return {
+                        success: false,
+                        error: 'Email ou mot de passe incorrect.',
+                    };
+                }
+                // Backend injoignable ou autre erreur
                 console.error('AuthService: backend injoignable', error);
                 return {
                     success: false,

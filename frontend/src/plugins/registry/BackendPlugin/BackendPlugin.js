@@ -1,52 +1,59 @@
 /**
- * BackendPlugin — Connexion frontend ↔ backend Laravel.
+ * BackendPlugin — Connexion frontend - backend Laravel.
  *
- * Orchestrateur qui connecte les services (Auth, User, Taxonomy, Sync, Images)
- * au backend Laravel via l'API REST. Active la synchronisation bidirectionnelle
- * tout en maintenant le mode offline-first avec IndexedDB comme source de vérité.
+ * Plugin de wiring qui connecte les services (User, Taxonomy, Sync, Images)
+ * au backend Laravel via le BackendHttpClient centralisé.
  *
  * Lifecycle :
  *
  *   app:initialized
- *     │
- *     ├─ charge config depuis IndexedDB
- *     ├─ si enabled && token existe
- *     │  ├─ configure AuthService
- *     │  ├─ configure UserService
- *     │  ├─ configure TaxonomyService
- *     │  ├─ crée RestBackendAdapter
- *     │  └─ injecte dans SyncService
- *     └─ écoute auth:login/logout
+ *     |
+ *     +- charge config depuis IndexedDB
+ *     +- si enabled : configure httpClient (baseUrl)
+ *     +- si enabled && token existe
+ *     |  +- valide le token via GET /api/me
+ *     |  +- si valide : configure les services
+ *     |  +- si 401 : token expire, le hook auth:tokenExpired gere le logout
+ *     +- ecoute auth:login/logout/beforeLogout/tokenExpired
  *
- *   auth:login (réussi)
- *     │
- *     ├─ token Sanctum stocké par AuthService
- *     └─ configure tous les services backend
+ *   auth:login (reussi)
+ *     |
+ *     +- configure les services backend
+ *
+ *   auth:beforeLogout
+ *     |
+ *     +- POST /api/logout via httpClient (tant que le token est encore disponible)
  *
  *   auth:logout
- *     │
- *     └─ désactive sync, nettoie config
+ *     |
+ *     +- reset httpClient, adapteurs, services
  *
- * Configuration persistée dans IndexedDB (meta store, clé: backend:config) :
+ *   auth:tokenExpired
+ *     |
+ *     +- declenche AuthService.logout()
+ *
+ * Configuration persistee dans IndexedDB (meta store, cle: backend:config) :
  *   - backendUrl : string (ex: 'http://localhost:8080')
- *   - pullInterval : number (ms, défaut: 30000)
- *   - enabled : boolean (défaut: false)
+ *   - pullInterval : number (ms, defaut: 30000)
+ *   - enabled : boolean (defaut: false)
  */
-import Container from '../../../Container.js';
 import StorageService from '../../../services/StorageService.js';
 import AuthService from '../../../services/AuthService.js';
 import UserService from '../../../services/UserService.js';
 import TaxonomyService from '../../../services/TaxonomyService.js';
+import httpClient from '../../../services/BackendHttpClient.js';
 import SyncService from '../../../sync/SyncService.js';
 import RestBackendAdapter from '../../../sync/RestBackendAdapter.js';
 import { NoOpBackendAdapter } from '../../../sync/BackendAdapter.js';
 import ImageStorage from '../../../services/storage/IndexedDBImageStorage.js';
 import ImageBackendAdapter from './ImageBackendAdapter.js';
+import BackendStorageDriver from '../../../services/storage/BackendStorageDriver.js';
+import LocalStorageDriver from '../../../services/storage/LocalStorageDriver.js';
 
-/** Clé IndexedDB pour la config du plugin */
+/** Cle IndexedDB pour la config du plugin */
 const CONFIG_KEY = 'backend:config';
 
-/** Configuration par défaut */
+/** Configuration par defaut */
 const DEFAULT_CONFIG = {
     backendUrl: '',
     pullInterval: 30000,
@@ -73,7 +80,7 @@ export default class BackendPlugin {
     _imageAdapter;
 
     /**
-     * Référence au hook registry.
+     * Reference au hook registry.
      * @type {import('../../HookRegistry.js').default|null}
      */
     _hooksRegistry;
@@ -84,12 +91,26 @@ export default class BackendPlugin {
      */
     _handlers;
 
+    /**
+     * Indique si les services ont deja ete configures (evite la double configuration).
+     * @type {boolean}
+     */
+    _configured;
+
+    /**
+     * Garde contre la boucle tokenExpired → logout → beforeLogout → 401 → tokenExpired.
+     * @type {boolean}
+     */
+    _loggingOut;
+
     constructor() {
         this._config = { ...DEFAULT_CONFIG };
         this._adapter = null;
         this._imageAdapter = null;
         this._hooksRegistry = null;
         this._handlers = {};
+        this._configured = false;
+        this._loggingOut = false;
     }
 
     // ---------------------------------------------------------------
@@ -108,37 +129,49 @@ export default class BackendPlugin {
         // Charge la config depuis IndexedDB
         await this._loadConfig();
 
-        // Écoute les hooks
+        // Ecoute les hooks
         this._handlers.onAppInitialized = () => this._onAppInitialized();
         hooks.addAction('app:initialized', this._handlers.onAppInitialized);
 
         this._handlers.onAuthLogin = () => this._onAuthLogin();
         hooks.addAction('auth:login', this._handlers.onAuthLogin);
 
+        this._handlers.onAuthBeforeLogout = () => this._onAuthBeforeLogout();
+        hooks.addAction('auth:beforeLogout', this._handlers.onAuthBeforeLogout);
+
         this._handlers.onAuthLogout = () => this._onAuthLogout();
         hooks.addAction('auth:logout', this._handlers.onAuthLogout);
+
+        this._handlers.onTokenExpired = () => this._onTokenExpired();
+        hooks.addAction('auth:tokenExpired', this._handlers.onTokenExpired);
     }
 
     /**
-     * Désinstallation du plugin.
+     * Desinstallation du plugin.
      *
      * @param {import('../../HookRegistry.js').default} hooks
      */
     uninstall(hooks) {
-        // Retire les hooks
         if (this._handlers.onAppInitialized) {
             hooks.removeAction('app:initialized', this._handlers.onAppInitialized);
         }
         if (this._handlers.onAuthLogin) {
             hooks.removeAction('auth:login', this._handlers.onAuthLogin);
         }
+        if (this._handlers.onAuthBeforeLogout) {
+            hooks.removeAction('auth:beforeLogout', this._handlers.onAuthBeforeLogout);
+        }
         if (this._handlers.onAuthLogout) {
             hooks.removeAction('auth:logout', this._handlers.onAuthLogout);
         }
+        if (this._handlers.onTokenExpired) {
+            hooks.removeAction('auth:tokenExpired', this._handlers.onTokenExpired);
+        }
 
-        // Nettoie l'adapteur
         this._adapter = null;
+        this._imageAdapter = null;
         this._hooksRegistry = null;
+        this._configured = false;
     }
 
     // ---------------------------------------------------------------
@@ -147,42 +180,108 @@ export default class BackendPlugin {
 
     /**
      * Handler pour app:initialized.
-     * Appelé au démarrage de l'app, après le chargement des plugins.
+     *
+     * Configure httpClient avec baseUrl des le demarrage (necessaire pour login).
+     * Si un token existe deja, valide avec GET /api/me puis configure les services.
      *
      * @private
      */
-    _onAppInitialized() {
-        // Si enabled et token existe, configure les services
-        if (this._config.enabled && AuthService.getToken()) {
-            this._configureServices();
+    async _onAppInitialized() {
+        if (!this._config.enabled || !this._config.backendUrl) {
+            return;
+        }
+
+        // Configure httpClient avec l'URL (meme sans token, necessaire pour login)
+        httpClient.configure(this._config.backendUrl);
+
+        // Si un token existe, valide et configure les services
+        if (AuthService.getToken()) {
+            try {
+                await httpClient.get('/api/me');
+                await this._configureServices();
+            } catch (_error) {
+                // 401 = token expire → le hook auth:tokenExpired est deja fire par httpClient
+                // Autre erreur = backend injoignable, on ne configure pas
+                console.warn('BackendPlugin: validation token echouee, services non configures');
+            }
         }
     }
 
     /**
      * Handler pour auth:login.
-     * Appelé après un login réussi.
+     * Appele apres un login reussi. Attend que les services soient configures
+     * (drivers, UserService, TaxonomyService) avant que LoginView ne continue.
+     *
+     * @returns {Promise<void>}
+     * @private
+     */
+    async _onAuthLogin() {
+        if (this._config.enabled) {
+            await this._configureServices();
+        }
+    }
+
+    /**
+     * Handler pour auth:beforeLogout.
+     * Appele avant le cleanup de session — le token est encore disponible.
+     * POST /api/logout via httpClient.
      *
      * @private
      */
-    _onAuthLogin() {
-        // Si enabled, configure les services
-        if (this._config.enabled) {
-            this._configureServices();
+    async _onAuthBeforeLogout() {
+        // Active la garde anti-boucle : si le POST /api/logout provoque un 401,
+        // le hook auth:tokenExpired sera ignore (voir _onTokenExpired).
+        this._loggingOut = true;
+
+        if (httpClient.isConfigured() && AuthService.getToken()) {
+            try {
+                await httpClient.post('/api/logout', {});
+            } catch (error) {
+                console.warn('BackendPlugin: erreur lors du logout backend', error);
+            }
         }
     }
 
     /**
      * Handler pour auth:logout.
-     * Appelé après un logout.
+     * Appele apres le cleanup de session. Reset complet des services.
      *
      * @private
      */
     _onAuthLogout() {
-        // Désactive le sync en repassant à NoOpBackendAdapter (import direct)
-        SyncService.setAdapter(new NoOpBackendAdapter());
+        // Revient au driver local pour les boards
+        StorageService.setDriver(new LocalStorageDriver());
 
-        // Désactive le backend pour les images
+        // Reset les services
+        SyncService.setAdapter(new NoOpBackendAdapter());
         ImageStorage.setBackendAdapter(null);
+        UserService.setHttpClient(null);
+        TaxonomyService.setHttpClient(null);
+
+        // Reset les adapteurs
+        this._adapter = null;
+        this._imageAdapter = null;
+        this._configured = false;
+        this._loggingOut = false;
+
+        // Note: httpClient garde sa baseUrl pour permettre un re-login
+        // Il sera reset si le plugin est desactive
+    }
+
+    /**
+     * Handler pour auth:tokenExpired (intercepte par httpClient sur 401).
+     * Declenche le logout complet.
+     *
+     * @private
+     */
+    _onTokenExpired() {
+        // Garde anti-boucle : si on est deja en cours de logout,
+        // un 401 du POST /api/logout ne doit pas relancer le cycle.
+        if (this._loggingOut) return;
+        this._loggingOut = true;
+
+        console.warn('BackendPlugin: token expire, deconnexion');
+        AuthService.logout();
     }
 
     // ---------------------------------------------------------------
@@ -190,56 +289,62 @@ export default class BackendPlugin {
     // ---------------------------------------------------------------
 
     /**
-     * Configure tous les services pour utiliser le backend.
+     * Configure tous les services pour utiliser le backend via httpClient.
      *
+     * Async : attend que UserService et TaxonomyService aient fini leur
+     * rechargement avant de retourner. Cela garantit que PermissionService
+     * a un user avec role quand les vues s'affichent apres login.
+     *
+     * @returns {Promise<void>}
      * @private
      */
-    _configureServices() {
+    async _configureServices() {
         if (!this._config.backendUrl) {
-            console.warn('BackendPlugin: backendUrl non configurée');
+            console.warn('BackendPlugin: backendUrl non configuree');
             return;
         }
 
-        const backendUrl = this._config.backendUrl;
+        if (this._configured) {
+            return;
+        }
 
-        // Fonction qui retourne les headers auth
-        const getHeaders = () => {
-            const token = AuthService.getToken();
-            return token ? { Authorization: `Bearer ${token}` } : {};
-        };
+        // httpClient deja configure dans _onAppInitialized ou _configureHttpClient
+        if (!httpClient.isConfigured()) {
+            httpClient.configure(this._config.backendUrl);
+        }
 
-        // Configure AuthService
-        AuthService.setBackendUrl(backendUrl);
+        // Switch le driver de StorageService vers le backend
+        StorageService.setDriver(new BackendStorageDriver(httpClient));
 
-        // Configure UserService et recharge les données
-        UserService.setFetchUrl(`${backendUrl}/api/users`, getHeaders);
-        UserService.reload().catch((err) =>
-            console.warn('BackendPlugin: échec reload UserService', err),
-        );
+        // Configure et recharge UserService + TaxonomyService en parallele.
+        // Await : les vues ont besoin des users (PermissionService) et des
+        // taxonomies pour s'afficher correctement.
+        UserService.setHttpClient(httpClient);
+        TaxonomyService.setHttpClient(httpClient);
 
-        // Configure TaxonomyService et recharge les données
-        TaxonomyService.setFetchUrl(`${backendUrl}/api/taxonomies`, getHeaders);
-        TaxonomyService.reload().catch((err) =>
-            console.warn('BackendPlugin: échec reload TaxonomyService', err),
-        );
+        const [userResult, taxonomyResult] = await Promise.allSettled([
+            UserService.reload(),
+            TaxonomyService.reload(),
+        ]);
+
+        if (userResult.status === 'rejected') {
+            console.warn('BackendPlugin: echec reload UserService', userResult.reason);
+        }
+        if (taxonomyResult.status === 'rejected') {
+            console.warn('BackendPlugin: echec reload TaxonomyService', taxonomyResult.reason);
+        }
 
         // Configure SyncService
-        this._adapter = new RestBackendAdapter({
-            baseUrl: backendUrl,
-            getHeaders,
-            timeout: 10000,
-        });
+        this._adapter = new RestBackendAdapter(httpClient);
         SyncService.setAdapter(this._adapter);
         SyncService.setPullInterval(this._config.pullInterval);
 
         // Configure ImageStorage
-        this._imageAdapter = new ImageBackendAdapter({
-            baseUrl: backendUrl,
-            getHeaders,
-        });
+        this._imageAdapter = new ImageBackendAdapter(httpClient);
         ImageStorage.setBackendAdapter(this._imageAdapter);
 
-        console.warn('BackendPlugin: services configurés avec', backendUrl);
+        this._configured = true;
+        console.warn('BackendPlugin: services configures avec', this._config.backendUrl);
     }
 
     // ---------------------------------------------------------------
@@ -256,7 +361,7 @@ export default class BackendPlugin {
     }
 
     /**
-     * Met à jour la configuration et persiste dans IndexedDB.
+     * Met a jour la configuration et persiste dans IndexedDB.
      *
      * @param {{ backendUrl?: string, pullInterval?: number, enabled?: boolean }} updates
      * @returns {Promise<void>}
@@ -265,57 +370,57 @@ export default class BackendPlugin {
         this._config = { ...this._config, ...updates };
         await StorageService.set(CONFIG_KEY, this._config);
 
-        // Détermine si une reconfiguration est nécessaire
         let needsReconfigure = false;
 
         if (updates.enabled !== undefined) {
             if (updates.enabled && AuthService.getToken()) {
+                // Active : configure httpClient + services
+                httpClient.configure(this._config.backendUrl);
+                this._configured = false;
                 needsReconfigure = true;
             } else if (!updates.enabled) {
+                // Desactive : reset complet
                 this._onAuthLogout();
-                return; // Pas besoin de reconfigurer après logout
+                httpClient.reset();
+                return;
             }
         }
 
         // Si backendUrl ou pullInterval change et enabled, reconfigure
         if ((updates.backendUrl || updates.pullInterval) && this._config.enabled) {
+            if (updates.backendUrl) {
+                httpClient.configure(this._config.backendUrl);
+                this._configured = false;
+            }
             needsReconfigure = true;
         }
 
-        // Configure une seule fois à la fin
         if (needsReconfigure) {
             this._configureServices();
         }
     }
 
     /**
-     * Teste la connexion au backend.
+     * Teste la connexion au backend via httpClient.
      *
      * @returns {Promise<{ success: boolean, error?: string, user?: Object }>}
      */
     async testConnection() {
         if (!this._config.backendUrl) {
-            return { success: false, error: 'URL backend non configurée' };
+            return { success: false, error: 'URL backend non configuree' };
         }
 
-        const token = AuthService.getToken();
-        if (!token) {
+        if (!AuthService.getToken()) {
             return { success: false, error: "Aucun token d'authentification" };
         }
 
+        // Configure temporairement httpClient si pas encore fait
+        if (!httpClient.isConfigured()) {
+            httpClient.configure(this._config.backendUrl);
+        }
+
         try {
-            const response = await fetch(`${this._config.backendUrl}/api/me`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                return { success: false, error: `HTTP ${response.status}` };
-            }
-
-            const data = await response.json();
+            const data = await httpClient.get('/api/me');
             return { success: true, user: data.user || data };
         } catch (error) {
             return { success: false, error: error.message };

@@ -14,7 +14,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $users = QueryBuilder::for(User::class)
+        $users = QueryBuilder::for(User::with('roles'))
             ->allowedFilters(['name', 'email'])
             ->allowedSorts(['name', 'email', 'created_at'])
             ->allowedIncludes(['roles', 'permissions'])

@@ -1,5 +1,6 @@
 {
     "name": "snowflake-cursor",
+    "scope": "app",
     "label": "Flocons de neige",
     "description": "Effet de particules : des flocons suivent le curseur avec gravité et vent.",
     "tags": ["decoration", "animation", "fun", "curseur"]

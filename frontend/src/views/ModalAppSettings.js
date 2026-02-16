@@ -1,12 +1,13 @@
 /**
- * ModalBoardSettings — Modale de configuration générale du board.
+ * ModalAppSettings — Modale de configuration globale de l'application.
  *
- * Affiche une modale fullscreen avec système d'onglets :
- *   - "Général" : nom du board, image de fond + zone d'injection pour plugins
- *   - "Plugins" : liste des plugins avec toggles et boutons de configuration
+ * Affiche une modale fullscreen avec système d'onglets pour les réglages
+ * qui ne dépendent pas d'un board spécifique :
+ *   - "Profil" (solo mode) : nom, initiales, couleur de l'utilisateur
+ *   - "Plugins" : liste des plugins à scope "app" avec toggles et configuration
  *   - Onglets additionnels injectés par les plugins via hook
  *
- * Structure DOM :
+ * Structure DOM identique à ModalBoardSettings :
  *   div.board-settings-overlay
  *     div.board-settings
  *       div.board-settings-header
@@ -17,35 +18,19 @@
  *         div.board-settings-content
  *           div.board-settings-panel (×N, un seul --active)
  *
- * Hooks disponibles :
+ * Hook disponible :
  *
- *   modal:boardSettings:opened
+ *   modal:appSettings:opened
  *     Contexte :
  *       - registerTab(id, label, buildPanel) : ajoute un onglet
- *       - board : instance du Board
  *       - onClose(fn) : callback de nettoyage
- *
- *   modal:boardSettings:general
- *     Contexte :
- *       - panel : HTMLElement du panneau Général (pour injecter du contenu)
- *       - board : instance du Board
- *     Permet aux plugins d'ajouter des champs dans l'onglet Général.
- *
- * Les panels sont extraits dans des classes dédiées :
- *   - boardSettings/GeneralPanel.js
- *   - boardSettings/PluginsPanel.js
  */
 import Hooks from '../plugins/HookRegistry.js';
-import GeneralPanel from './boardSettings/GeneralPanel.js';
+import { isSoloMode } from '../config/appMode.js';
+import ProfilePanel from './boardSettings/ProfilePanel.js';
 import PluginsPanel from './boardSettings/PluginsPanel.js';
 
-export default class ModalBoardSettings {
-    /**
-     * Référence au Board.
-     * @type {import('../models/Board.js').default}
-     */
-    _board;
-
+export default class ModalAppSettings {
     /**
      * Élément racine (overlay) ajouté au DOM.
      * @type {HTMLElement|null}
@@ -88,11 +73,7 @@ export default class ModalBoardSettings {
      */
     _pluginsPanel;
 
-    /**
-     * @param {import('../models/Board.js').default} board
-     */
-    constructor(board) {
-        this._board = board;
+    constructor() {
         this._overlay = null;
         this._sidebar = null;
         this._content = null;
@@ -145,10 +126,9 @@ export default class ModalBoardSettings {
         // — Hook pour que les plugins ajoutent leurs onglets
         const hookContext = {
             registerTab: (id, label, buildPanel) => this._registerTab(id, label, buildPanel),
-            board: this._board,
             onClose: (fn) => this._closeCallbacks.push(fn),
         };
-        Hooks.doAction('modal:boardSettings:opened', hookContext);
+        Hooks.doAction('modal:appSettings:opened', hookContext);
 
         // — Active le premier onglet
         if (this._navItems.length > 0) {
@@ -160,11 +140,9 @@ export default class ModalBoardSettings {
      * Retire la modale du DOM.
      */
     close() {
-        // Appelle les callbacks de nettoyage
         for (const fn of this._closeCallbacks) fn();
         this._closeCallbacks = [];
 
-        // Nettoyage du PluginsPanel
         if (this._pluginsPanel) {
             this._pluginsPanel.destroy();
             this._pluginsPanel = null;
@@ -191,11 +169,11 @@ export default class ModalBoardSettings {
         header.className = 'board-settings-header';
 
         const title = document.createElement('h2');
-        title.textContent = 'Configuration du board';
+        title.textContent = "Paramètres de l'application";
 
         const closeBtn = document.createElement('button');
         closeBtn.className = 'board-settings-close';
-        closeBtn.textContent = '×';
+        closeBtn.textContent = '\u00d7';
         closeBtn.addEventListener('click', () => this.close());
 
         header.appendChild(title);
@@ -209,14 +187,14 @@ export default class ModalBoardSettings {
      * @private
      */
     _addBuiltInTabs() {
-        // Onglet Général
-        const generalPanel = new GeneralPanel(this._board, {
-            onClose: () => this.close(),
-        });
-        this._registerTab('general', 'Général', (panel) => generalPanel.build(panel));
+        // Onglet Profil (solo mode uniquement)
+        if (isSoloMode()) {
+            const profilePanel = new ProfilePanel();
+            this._registerTab('profile', 'Profil', (panel) => profilePanel.build(panel));
+        }
 
-        // Onglet Plugins (scope board uniquement)
-        this._pluginsPanel = new PluginsPanel('board', {
+        // Onglet Plugins (scope app uniquement)
+        this._pluginsPanel = new PluginsPanel('app', {
             onRequestClose: () => this.close(),
         });
         this._registerTab('plugins', 'Plugins', (panel) => this._pluginsPanel.build(panel));
@@ -237,7 +215,6 @@ export default class ModalBoardSettings {
     _registerTab(id, label, buildPanel) {
         const index = this._navItems.length;
 
-        // Bouton de navigation
         const navItem = document.createElement('button');
         navItem.className = 'board-settings-nav-item';
         navItem.type = 'button';
@@ -247,7 +224,6 @@ export default class ModalBoardSettings {
         this._sidebar.appendChild(navItem);
         this._navItems.push(navItem);
 
-        // Panneau
         const panel = document.createElement('div');
         panel.className = 'board-settings-panel';
         panel.dataset.tabId = id;

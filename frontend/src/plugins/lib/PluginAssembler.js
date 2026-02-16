@@ -40,6 +40,7 @@
  * @param {string[]} [manifest.hooks.provides] - Hooks fournis par ce plugin
  * @param {string[]} [manifest.hooks.listens]  - Hooks écoutés par ce plugin (documentation)
  * @param {number}   [manifest.priority=10]    - Priorité d'enregistrement (plus petit = enregistré plus tôt)
+ * @param {string}   [manifest.scope='board']   - Scope du plugin : 'app' (global) ou 'board' (par board)
  * @param {boolean}  [manifest.disabled=false]  - Si true, le plugin n'est pas chargé par l'application
  * @param {Object} plugin     - L'objet plugin (logique métier : install, uninstall, etc.)
  * @param {Object} [modules]  - Modules optionnels à câbler
@@ -55,6 +56,7 @@ export function assemblePlugin(manifest, plugin, modules = {}) {
     plugin.description = manifest.description || '';
     plugin.tags = manifest.tags || [];
     plugin.hooks = manifest.hooks || {};
+    plugin.scope = manifest.scope || 'board';
     plugin.priority = manifest.priority ?? 10;
     plugin.disabled = manifest.disabled || false;
 

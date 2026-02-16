@@ -1,5 +1,6 @@
 {
     "name": "dev-tools",
+    "scope": "app",
     "label": "DevTools Console",
     "description": "Expose window.kanban pour piloter le Kanban depuis les devtools.",
     "tags": ["developpeur", "debug"],

@@ -43,8 +43,13 @@ export default class ModalConfirmDelete extends BaseModal {
         }
         // Usage 2 : objet options
         else {
-            const { title = 'Confirmer la suppression', message, onConfirm: callback } = titleOrOptions;
-            super({ title, confirmLabel: 'Supprimer' });
+            const {
+                title = 'Confirmer la suppression',
+                message,
+                confirmLabel: label = 'Supprimer',
+                onConfirm: callback,
+            } = titleOrOptions;
+            super({ title, confirmLabel: label });
             this._message = message;
             this._onConfirmCallback = callback;
         }

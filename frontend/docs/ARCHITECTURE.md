@@ -39,6 +39,7 @@ graph TB
         TS["TaxonomyService"]
         CTR["CardTypeRegistry"]
         ISS["ImageStorageService"]
+        HTTP["BackendHttpClient"]
     end
 
     subgraph Models["Couche Modèles"]
@@ -64,11 +65,12 @@ graph TB
         OPAPP["OpApplier"]
     end
 
-    subgraph Storage["Persistence IndexedDB"]
+    subgraph Storage["Persistence"]
         style Storage fill:#ffedd5,stroke:#ea580c,color:#1e1b4b
         DB["Database.js (idb)"]
         BSTO["BoardStorage"]
         IMGSTO["IndexedDBImageStorage"]
+        SDRV["StorageDriver<br/>(Local | Backend)"]
     end
 
     MAIN --> APP
@@ -97,8 +99,9 @@ graph TB
     COL --> CARDM
 
     BS --> SS
+    SS --> SDRV
+    SDRV --> BSTO
     SS --> DB
-    SS --> BSTO
     SS --> IMGSTO
 
     BS --> HR
@@ -136,6 +139,7 @@ sequenceDiagram
     rect rgb(219, 234, 254)
     Note over M,R: Phase 2 — Routing (avec auth guard)
     M->>R: addRoute('/login')
+    M->>R: addRoute('/register')
     M->>R: addRoute('/', requireAuth)
     M->>R: addRoute('/board/:id', requireAuth)
     M->>R: addRoute('/explorer', requireAuth)
@@ -156,7 +160,7 @@ sequenceDiagram
 **Fichiers clés** :
 - [`src/main.js`](../src/main.js) — Bootstrap, routes, lancement
 - [`src/Application.js`](../src/Application.js) — Orchestrateur singleton
-- [`src/services/Router.js`](../src/services/Router.js) — Routeur hash-based (`#/login`, `#/`, `#/board/:id`, `#/explorer`)
+- [`src/services/Router.js`](../src/services/Router.js) — Routeur hash-based (`#/login`, `#/register`, `#/`, `#/board/:id`, `#/explorer`)
 - [`src/services/AuthService.js`](../src/services/AuthService.js) — Authentification front-end (login, session, guard)
 
 ---
@@ -182,6 +186,7 @@ graph LR
     RT["Router"] -->|set| MAP
     APP["Application"] -->|set| MAP
     SYNC["SyncService"] -->|set| MAP
+    HTTP["BackendHttpClient"] -->|set| MAP
 
     MAP -->|get| CONSUMER["N'importe quel module"]
 
@@ -194,6 +199,7 @@ graph LR
     style RT fill:#dcfce7,stroke:#16a34a,color:#1e1b4b
     style APP fill:#f3e8ff,stroke:#7c3aed,color:#1e1b4b
     style SYNC fill:#e0f2fe,stroke:#0284c7,color:#1e1b4b
+    style HTTP fill:#dcfce7,stroke:#16a34a,color:#1e1b4b
     style CONSUMER fill:#dbeafe,stroke:#2563eb,color:#1e1b4b
 ```
 
@@ -216,17 +222,20 @@ graph LR
     subgraph Routes["Routes hash-based"]
         style Routes fill:#dbeafe,stroke:#2563eb,color:#1e1b4b
         R0["#/login → showLogin()"]
+        R00["#/register → showRegister()"]
         R1["#/ → requireAuth → showHome()"]
         R2["#/board/:id → requireAuth → openBoard(id)"]
         R3["#/explorer → requireAuth → showExplorer()"]
     end
 
     R0 --> LOGIN["LoginView"]
+    R00 --> REGISTER["RegisterView"]
     R1 --> HOME["HomeView"]
     R2 --> BOARD["BoardView"]
     R3 --> EXPLORER["ExplorerView"]
 
     style LOGIN fill:#ffe4e6,stroke:#e11d48,color:#1e1b4b
+    style REGISTER fill:#ffe4e6,stroke:#e11d48,color:#1e1b4b
     style HOME fill:#dcfce7,stroke:#16a34a,color:#1e1b4b
     style BOARD fill:#dcfce7,stroke:#16a34a,color:#1e1b4b
     style EXPLORER fill:#dcfce7,stroke:#16a34a,color:#1e1b4b
@@ -270,7 +279,7 @@ L'application fonctionne en mode **solo-offline** : un seul utilisateur local em
 - `UserService` cree un seul user admin (`solo-user`) dont le profil est stocke en IndexedDB (cle `userProfile`)
 - `getUserById(id)` retourne le solo user pour **tout** ID non-null (compatibilite boards existants)
 - Les elements UI multi-user sont caches (SelectUser, filtres assignee/auteur, badges assignee)
-- Un onglet "Profil" dans ModalBoardSettings permet de configurer nom, initiales et couleur
+- Un onglet "Profil" dans ModalAppSettings permet de configurer nom, initiales et couleur
 
 **Passage en multi** : changer `APP_MODE` en `'multi'` dans `appMode.js` (ou lire `import.meta.env.VITE_APP_MODE`).
 
@@ -304,7 +313,7 @@ src/
 ├── Container.js                     ← Service Locator
 ├── models/                          ← Données pures (EventEmitter)
 ├── services/                        ← Logique métier + persistence
-│   └── storage/                     ← IndexedDB (idb wrapper)
+│   └── storage/                     ← IndexedDB + StorageDriver (strategie)
 ├── views/                           ← DOM, modales, interactions
 │   ├── column/                      ← Sous-composants colonne
 │   ├── cardDetail/                  ← Panneaux détail carte

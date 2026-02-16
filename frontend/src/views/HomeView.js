@@ -17,6 +17,7 @@ import Hooks from '../plugins/HookRegistry.js';
 import ModalConfirmDelete from './ModalConfirmDelete.js';
 import { generateDemoColumns } from '../data/demoBoard.js';
 import { formatRelativeDate } from '../utils/date.js';
+import ModalAppSettings from './ModalAppSettings.js';
 import { animate, stagger } from 'animejs';
 
 export default class HomeView {
@@ -80,9 +81,18 @@ export default class HomeView {
         importBtn.textContent = '📂 Importer';
         importBtn.addEventListener('click', () => this._importBoard());
 
+        const settingsBtn = document.createElement('button');
+        settingsBtn.className = 'home-demo-btn';
+        settingsBtn.textContent = 'Paramètres';
+        settingsBtn.addEventListener('click', () => {
+            const modal = new ModalAppSettings();
+            modal.open();
+        });
+
         buttons.appendChild(newBtn);
         buttons.appendChild(demoBtn);
         buttons.appendChild(importBtn);
+        buttons.appendChild(settingsBtn);
 
         // IndexedDB Explorer : outil de dev, masqué en production
         if (import.meta.env.DEV) {
@@ -97,9 +107,9 @@ export default class HomeView {
         header.appendChild(buttons);
         this._element.appendChild(header);
 
-        // Grille des boards
+        // Zone de contenu des boards
         this._grid = document.createElement('div');
-        this._grid.className = 'home-grid';
+        this._grid.className = 'home-content';
         this._element.appendChild(this._grid);
 
         // Charge et affiche les boards
@@ -116,7 +126,7 @@ export default class HomeView {
      * @private
      */
     _animateCards() {
-        const cards = this._grid.querySelectorAll('.home-card');
+        const cards = this._element.querySelectorAll('.home-card');
         if (!cards.length) return;
 
         animate(cards, {
@@ -155,28 +165,91 @@ export default class HomeView {
 
     /**
      * Charge les boards depuis le storage et les affiche.
+     * En mode backend, affiche deux sections : boards distants + boards locaux.
      *
      * @returns {Promise<void>}
      * @private
      */
     async _loadBoards() {
-        const registry = await StorageService.getBoardRegistry();
-        this._grid.innerHTML = '';
+        try {
+            const registry = await StorageService.getBoardRegistry();
+            this._grid.innerHTML = '';
 
-        if (registry.boards.length === 0) {
+            // Mode backend : afficher les deux sources
+            if (StorageService.isRemoteDriverActive()) {
+                const localBoards = await StorageService.getLocalBoardList();
+                this._renderSplitBoards(registry.boards, localBoards);
+                return;
+            }
+
+            // Mode local : grille unique
+            if (registry.boards.length === 0) {
+                this._renderEmptyState();
+                return;
+            }
+
+            this._grid.appendChild(this._renderBoardSection(null, registry.boards));
+        } catch (error) {
+            console.error('HomeView: erreur chargement des boards', error);
+            this._grid.innerHTML = '';
+            this._renderEmptyState();
+        }
+    }
+
+    /**
+     * Affiche les boards distants et locaux dans deux sections separees.
+     * N'affiche une section que si elle contient des boards.
+     *
+     * @param {Array} remoteBoards - Boards du backend
+     * @param {Array} localBoards - Boards IndexedDB locaux
+     * @private
+     */
+    _renderSplitBoards(remoteBoards, localBoards) {
+        if (remoteBoards.length === 0 && localBoards.length === 0) {
             this._renderEmptyState();
             return;
         }
 
-        // Tri par date de modification (plus recent en premier)
-        const sortedBoards = [...registry.boards].sort((a, b) => {
+        if (remoteBoards.length > 0) {
+            this._grid.appendChild(this._renderBoardSection('Boards distants', remoteBoards));
+        }
+        if (localBoards.length > 0) {
+            this._grid.appendChild(this._renderBoardSection('Boards locaux', localBoards));
+        }
+    }
+
+    /**
+     * Cree une section avec un titre optionnel et une grille de boards.
+     *
+     * @param {string|null} title - Titre de la section (null = pas de titre)
+     * @param {Array} boards - Liste des boards a afficher
+     * @returns {HTMLElement}
+     * @private
+     */
+    _renderBoardSection(title, boards) {
+        const section = document.createElement('section');
+        section.className = 'home-section';
+
+        if (title) {
+            const heading = document.createElement('h2');
+            heading.className = 'home-section-title';
+            heading.textContent = title;
+            section.appendChild(heading);
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'home-grid';
+
+        const sortedBoards = [...boards].sort((a, b) => {
             return new Date(b.updatedAt) - new Date(a.updatedAt);
         });
 
         for (const board of sortedBoards) {
-            const card = this._createBoardCard(board);
-            this._grid.appendChild(card);
+            grid.appendChild(this._createBoardCard(board));
         }
+
+        section.appendChild(grid);
+        return section;
     }
 
     /**

@@ -1,5 +1,6 @@
 {
     "name": "command-palette",
+    "scope": "app",
     "label": "Palette de commandes",
     "description": "Ctrl+K / Cmd+K — Rechercher des cartes, exécuter des actions, filtrer et naviguer entre boards.",
     "tags": ["navigation", "productivité"],

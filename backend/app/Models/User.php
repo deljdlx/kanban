@@ -36,7 +36,16 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'roles',
+        'permissions',
     ];
+
+    /**
+     * Toujours inclure le role dans la serialisation JSON.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['role'];
 
     /**
      * Get the attributes that should be cast.
@@ -49,5 +58,14 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Retourne le premier role Spatie de l'utilisateur.
+     * Le frontend attend un champ 'role' (string) pour PermissionService.
+     */
+    public function getRoleAttribute(): ?string
+    {
+        return $this->roles->first()?->name;
     }
 }

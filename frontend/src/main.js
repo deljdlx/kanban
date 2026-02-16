@@ -37,6 +37,10 @@ const requireAuth = (handler) => async (ctx) => {
         await app.showLogin();
     });
 
+    Router.addRoute('/register', async () => {
+        await app.showRegister();
+    });
+
     Router.addRoute(
         '/',
         requireAuth(async () => {

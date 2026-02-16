@@ -7,6 +7,7 @@
 import ModalAddColumn from './ModalAddColumn.js';
 import ModalAddCard from './ModalAddCard.js';
 import ModalBoardSettings from './ModalBoardSettings.js';
+import ModalAppSettings from './ModalAppSettings.js';
 import FilterDropdown from '../components/FilterDropdown.js';
 import UserService from '../services/UserService.js';
 import PermissionService from '../services/PermissionService.js';
@@ -121,7 +122,7 @@ export default class HeaderView {
         this._filterDropdown = new FilterDropdown();
         actions.appendChild(this._filterDropdown.render());
 
-        // Bouton Configuration (ouvre la modale de paramètres)
+        // Bouton Configuration (ouvre la modale board settings)
         const settingsBtn = document.createElement('button');
         settingsBtn.className = 'app-header-settings';
         settingsBtn.textContent = 'Configuration';
@@ -130,6 +131,16 @@ export default class HeaderView {
             modal.open();
         });
         actions.appendChild(settingsBtn);
+
+        // Bouton Paramètres app (ouvre la modale app settings)
+        const appSettingsBtn = document.createElement('button');
+        appSettingsBtn.className = 'app-header-settings';
+        appSettingsBtn.textContent = 'Paramètres';
+        appSettingsBtn.addEventListener('click', () => {
+            const modal = new ModalAppSettings();
+            modal.open();
+        });
+        actions.appendChild(appSettingsBtn);
 
         // Bouton ajouter ticket (visible uniquement pour les rôles autorisés)
         // Désactivé tant qu'aucune colonne n'existe dans le board.

@@ -1,5 +1,6 @@
 {
     "name": "linear-sync",
+    "scope": "app",
     "disabled": true,
     "label": "Linear Sync",
     "description": "Synchronise les issues Linear dans le board Kanban via l'API GraphQL.",

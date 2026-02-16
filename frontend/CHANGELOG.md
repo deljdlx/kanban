@@ -8,6 +8,34 @@ Un changelog par semaine. Format : sections par type de changement.
 
 ### Fonctionnalités
 
+- **StorageDriver — Pattern strategie pour le stockage des boards** — `StorageService` delegue les operations board a un driver interchangeable : `LocalStorageDriver` (IndexedDB, defaut) ou `BackendStorageDriver` (REST). Le BackendPlugin switch le driver au login/logout. Le board actif est stocke comme setting local (`storage:activeBoard`). Suppression de `_syncBoardRegistry()`, du hook `backend:registrySynced`, et de `listBoards()` dans les adapters. HomeView affiche deux sections "Boards distants" / "Boards locaux" quand le driver distant est actif, via `StorageService.isRemoteDriverActive()` et `getLocalBoardList()`. (`StorageDriver.js`, `LocalStorageDriver.js`, `BackendStorageDriver.js`, `StorageService.js`, `BackendPlugin.js`, `HomeView.js`, `BackendAdapter.js`, `RestBackendAdapter.js`, `manifest.json`)
+
+- **Chargement des boards depuis le backend** — Quand le BackendPlugin est actif et l'utilisateur connecté, le registre des boards est synchronisé avec le backend via `GET /api/boards/registry`. Le backend est source de vérité : les boards distants remplacent les métadonnées locales, les boards locaux non pushés sont conservés. HomeView affiche deux blocs séparés : "Boards distants" puis "Boards locaux" via le hook `backend:registrySynced`. (`BackendPlugin.js`, `BackendAdapter.js`, `RestBackendAdapter.js`, `HomeView.js`, `BoardController.php`, `api.php`, `_home.scss`)
+
+- **Modale de confirmation activation BackendPlugin** — Quand l'utilisateur active le BackendPlugin, une modale de confirmation l'informe qu'il sera déconnecté. Si confirmé : activation du plugin, logout, redirection vers `/login`. `ModalConfirmDelete` supporte désormais un `confirmLabel` personnalisé dans les options. (`PluginsPanel.js`, `ModalConfirmDelete.js`)
+- **Page d'inscription (RegisterView)** — Nouveau formulaire d'inscription accessible depuis la page de login. Champs : nom, email, mot de passe, confirmation. Validation côté client + envoi via `POST /api/register`. Après succès, redirection vers `/login`. Liens bidirectionnels entre login et register. (`RegisterView.js`, `LoginView.js`, `Application.js`, `main.js`)
+- **API register Laravel** — Nouvel endpoint `POST /api/register` (public) : validation name/email/password, création utilisateur, retour 201. Pas d'auto-login. (`AuthController.php`, `api.php`)
+
+- **Scope plugin (app vs board) et ModalAppSettings** — Nouveau champ `scope` dans le manifest des plugins (`'app'` ou `'board'`, défaut `'board'`). 12 plugins globaux marqués `scope: "app"` (backend, theme, keyboard-shortcuts, command-palette, toast, dev-tools, live-sync, linear-sync, animation, perspective-3d, snowflake-cursor, image-gc). Nouvelle modale `ModalAppSettings` accessible depuis HomeView et HeaderView pour configurer les plugins globaux et le profil (solo mode). `ModalBoardSettings` n'affiche plus que les 19 plugins board-level. Hook `modal:appSettings:opened` pour l'extensibilité. (`ModalAppSettings.js`, `ModalBoardSettings.js`, `PluginsPanel.js`, `PluginAssembler.js`, `HomeView.js`, `HeaderView.js`, `hookDefinitions.js`, 12 manifest.json)
+
+### Infrastructure
+
+- **BackendHttpClient — Client HTTP centralisé** — Nouveau service singleton qui centralise tous les appels HTTP authentifiés vers le backend. Gère le token Bearer (via AuthService.getToken()), le timeout (AbortController), et l'interception des 401 (fire `auth:tokenExpired`). Méthodes : `request()`, `requestRaw()`, `get()`, `post()`, `put()`, `delete()`, `upload()`. (`src/services/BackendHttpClient.js`)
+- **Refactoring architecture connexion backend** — Extraction de la logique HTTP dupliquée dans 4 services vers BackendHttpClient. RestBackendAdapter, ImageBackendAdapter, UserService et TaxonomyService délèguent désormais au client centralisé au lieu de faire leur propre `fetch()`. BackendPlugin simplifié en pur wiring (plus de closures `getHeaders`). (`RestBackendAdapter.js`, `ImageBackendAdapter.js`, `UserService.js`, `TaxonomyService.js`, `BackendPlugin.js`)
+- **AuthService cleanup** — Suppression de `_backendUrl` et `setBackendUrl()` (le BackendHttpClient gère l'URL). `_authenticate()` utilise httpClient pour le login backend. Ajout du hook `auth:beforeLogout` déclenché avant le cleanup de session pour permettre aux plugins de faire des appels backend (ex: POST /api/logout) tant que le token est encore disponible. (`src/services/AuthService.js`)
+- **Hooks auth enrichis** — Nouveaux hooks `auth:beforeLogout` (avant cleanup session) et `auth:tokenExpired` (401 intercepté par BackendHttpClient). BackendPlugin écoute `auth:beforeLogout` pour POST /api/logout et `auth:tokenExpired` pour déclencher le logout automatique. (`AuthService.js`, `BackendHttpClient.js`, `BackendPlugin.js`)
+- **Validation token au démarrage** — BackendPlugin valide le token existant via `GET /api/me` au démarrage (hook `app:initialized`). Si 401, le token expiré déclenche un logout automatique au lieu de configurer des services avec un token invalide. (`BackendPlugin.js`)
+- **Protection double configuration** — Flag `_configured` dans BackendPlugin empêche la double configuration des services (race condition entre `app:initialized` et `auth:login`). Reset au logout. (`BackendPlugin.js`)
+
+### Documentation
+
+- BackendPlugin README réécrit pour refléter la nouvelle architecture httpClient
+- ARCHITECTURE.md : BackendHttpClient ajouté au diagramme Container et à la couche Services
+- PLUGIN-SYSTEM.md : hooks `auth:beforeLogout`, `auth:tokenExpired` ajoutés au catalogue
+- CHANGELOG mis à jour
+
+### Fonctionnalités
+
 - **BackendPlugin — Connexion frontend ↔ backend Laravel** — Plugin central qui active la synchronisation bidirectionnelle avec le backend. Configure AuthService (auth Sanctum), UserService, TaxonomyService, SyncService (RestBackendAdapter), et IndexedDBImageStorage pour communiquer avec l'API Laravel. Mode offline-first maintenu : IndexedDB reste la source de vérité, le backend est un miroir. Configuration persistée dans IndexedDB (`backend:config`). (`src/plugins/registry/BackendPlugin/BackendPlugin.js`, `BackendPlugin/index.js`, `BackendPlugin/manifest.json`)
 - **SyncIndicator** — Indicateur visuel de statut de synchronisation (pastille verte/orange/rouge/grise) affichée dans le footer. Écoute les hooks `sync:pushed`, `sync:queued`, `sync:pushFailed`. (`src/plugins/registry/BackendPlugin/SyncIndicator.js`)
 - **BackendSettingsPanel** — Panneau de configuration dans les settings app : URL backend, toggle activer/désactiver, bouton "Tester la connexion" (GET /api/me), intervalle de sync (secondes). (`src/plugins/registry/BackendPlugin/settingsPanel.js`)

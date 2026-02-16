@@ -1,5 +1,6 @@
 {
     "name": "toast",
+    "scope": "app",
     "label": "Notifications Toast",
     "description": "Affiche des notifications toast pour les actions importantes. Découvre automatiquement les hooks avec métadonnée notification.",
     "priority": 99,

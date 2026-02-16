@@ -34,6 +34,7 @@ import HeaderView from './views/HeaderView.js';
 import HomeView from './views/HomeView.js';
 import ExplorerView from './views/ExplorerView.js';
 import LoginView from './views/LoginView.js';
+import RegisterView from './views/RegisterView.js';
 import Container from './Container.js';
 import Router from './services/Router.js';
 import SyncService from './sync/SyncService.js';
@@ -170,6 +171,12 @@ class Application {
         } catch (error) {
             console.error('Application.init() : SyncService a échoué', error);
         }
+
+        // Notifie les plugins que l'app est prête (services + plugins initialisés).
+        // Utilisé par BackendPlugin pour valider le token et configurer les services.
+        // doActionAsync attend les callbacks async (ex: BackendPlugin valide le token
+        // via GET /api/me avant que le router ne démarre).
+        await Hooks.doActionAsync('app:initialized');
     }
 
     /**
@@ -252,6 +259,24 @@ class Application {
         } catch (error) {
             console.error('Application : échec du rendu de la page de connexion', error);
             this._renderMinimalError("Impossible d'afficher la page de connexion.");
+        }
+    }
+
+    /**
+     * Affiche l'écran d'inscription.
+     * Nettoie la vue courante avant d'afficher.
+     *
+     * @returns {Promise<void>}
+     */
+    async showRegister() {
+        this._teardownCurrentView();
+
+        try {
+            this._currentView = new RegisterView();
+            this._currentView.render(this._boardContainer);
+        } catch (error) {
+            console.error("Application : échec du rendu de la page d'inscription", error);
+            this._renderMinimalError("Impossible d'afficher la page d'inscription.");
         }
     }
 

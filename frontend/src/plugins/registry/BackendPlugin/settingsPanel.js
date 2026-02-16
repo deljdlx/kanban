@@ -2,19 +2,54 @@
  * BackendSettingsPanel — Panneau de configuration du backend.
  *
  * Permet de configurer :
- *   - URL du backend
- *   - Tester la connexion
- *   - Activer/désactiver le plugin
+ *   - URL du backend (avec test automatique via GET /api/version)
+ *   - Tester la connexion authentifiée (GET /api/me)
+ *   - Activer/désactiver la synchronisation
+ *   - Intervalle de pull
  */
+
+/**
+ * Teste la connexion au backend en appelant GET {url}/api/version.
+ * Endpoint public, pas besoin de token.
+ *
+ * @param {string} url - URL de base du backend (ex: 'http://localhost:8080')
+ * @returns {Promise<{ success: boolean, version?: string, app?: string, error?: string }>}
+ */
+async function fetchApiVersion(url) {
+    const cleanUrl = url.replace(/\/+$/, '');
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(`${cleanUrl}/api/version`, {
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            return { success: false, error: `HTTP ${response.status}` };
+        }
+
+        const data = await response.json();
+        return { success: true, version: data.api, app: data.app };
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            return { success: false, error: 'Timeout (5s)' };
+        }
+        return { success: false, error: error.message };
+    }
+}
 
 /**
  * Construit le panneau de settings pour le BackendPlugin.
  *
- * @param {Object} plugin - Instance du BackendPlugin
- * @returns {HTMLElement}
+ * Signature imposée par PluginAssembler : (plugin, container, defaults).
+ *
+ * @param {Object} plugin - Instance du BackendPlugin (wrappedPlugin)
+ * @param {HTMLElement} container - Élément DOM fourni par ModalPluginSettings
  */
-export function buildSettingsPanel(plugin) {
-    const container = document.createElement('div');
+export function buildSettingsPanel(plugin, container) {
     container.className = 'backend-settings';
 
     // Titre
@@ -30,26 +65,75 @@ export function buildSettingsPanel(plugin) {
         'Connectez le Kanban à un backend Laravel pour synchroniser vos boards, utilisateurs et taxonomies.';
     container.appendChild(desc);
 
-    // Toggle activer/désactiver
+    // --- Champ URL backend ---
+    const urlGroup = document.createElement('div');
+    urlGroup.className = 'form-group';
+
+    const urlLabel = document.createElement('label');
+    urlLabel.textContent = 'URL du backend';
+    urlLabel.className = 'label';
+
+    const urlInput = document.createElement('input');
+    urlInput.type = 'text';
+    urlInput.className = 'input';
+    urlInput.placeholder = 'http://localhost:8080';
+    urlInput.value = plugin.getConfig().backendUrl || '';
+
+    // Résultat du test de version (sous le champ URL)
+    const versionResult = document.createElement('p');
+    versionResult.className = 'backend-test-result';
+
+    /**
+     * Teste la connexion au backend via GET /api/version.
+     * Appelé au blur du champ URL et à l'ouverture si une URL est déjà configurée.
+     */
+    async function testUrl() {
+        const url = urlInput.value.trim();
+        if (!url) {
+            versionResult.textContent = '';
+            versionResult.className = 'backend-test-result';
+            return;
+        }
+
+        versionResult.className = 'backend-test-result';
+        versionResult.textContent = 'Connexion en cours...';
+
+        const result = await fetchApiVersion(url);
+
+        if (result.success) {
+            versionResult.className = 'backend-test-result backend-test-result--success';
+            versionResult.textContent = `API connectée — v${result.version}`;
+        } else {
+            versionResult.className = 'backend-test-result backend-test-result--error';
+            versionResult.textContent = `Connexion échouée : ${result.error}`;
+        }
+    }
+
+    // Sauvegarde l'URL au blur et teste la connexion
+    urlInput.addEventListener('change', async () => {
+        await plugin.updateConfig({ backendUrl: urlInput.value.trim() });
+        await testUrl();
+    });
+
+    urlGroup.appendChild(urlLabel);
+    urlGroup.appendChild(urlInput);
+    urlGroup.appendChild(versionResult);
+    container.appendChild(urlGroup);
+
+    // --- Toggle activer/désactiver ---
     const enabledGroup = document.createElement('div');
-    enabledGroup.className = 'backend-form-group';
+    enabledGroup.className = 'form-group';
 
     const enabledLabel = document.createElement('label');
-    enabledLabel.className = 'backend-form-label';
+    enabledLabel.className = 'checkbox-row';
     const enabledCheckbox = document.createElement('input');
     enabledCheckbox.type = 'checkbox';
     enabledCheckbox.checked = plugin.getConfig().enabled;
     enabledCheckbox.addEventListener('change', async () => {
         await plugin.updateConfig({ enabled: enabledCheckbox.checked });
-        if (enabledCheckbox.checked) {
-            urlInput.disabled = false;
-            testBtn.disabled = false;
-            intervalInput.disabled = false;
-        } else {
-            urlInput.disabled = true;
-            testBtn.disabled = true;
-            intervalInput.disabled = true;
-        }
+        const enabled = enabledCheckbox.checked;
+        testBtn.disabled = !enabled;
+        intervalInput.disabled = !enabled;
     });
 
     enabledLabel.appendChild(enabledCheckbox);
@@ -57,32 +141,13 @@ export function buildSettingsPanel(plugin) {
     enabledGroup.appendChild(enabledLabel);
     container.appendChild(enabledGroup);
 
-    // Champ URL backend
-    const urlGroup = document.createElement('div');
-    urlGroup.className = 'backend-form-group';
+    // --- Bouton test connexion authentifiée ---
+    const testGroup = document.createElement('div');
+    testGroup.className = 'form-group';
 
-    const urlLabel = document.createElement('label');
-    urlLabel.textContent = 'URL du backend';
-    urlLabel.className = 'backend-form-label';
-
-    const urlInput = document.createElement('input');
-    urlInput.type = 'text';
-    urlInput.className = 'input';
-    urlInput.placeholder = 'http://localhost:8080';
-    urlInput.value = plugin.getConfig().backendUrl || '';
-    urlInput.disabled = !plugin.getConfig().enabled;
-    urlInput.addEventListener('change', async () => {
-        await plugin.updateConfig({ backendUrl: urlInput.value.trim() });
-    });
-
-    urlGroup.appendChild(urlLabel);
-    urlGroup.appendChild(urlInput);
-    container.appendChild(urlGroup);
-
-    // Bouton test connexion
     const testBtn = document.createElement('button');
     testBtn.className = 'btn btn--secondary';
-    testBtn.textContent = 'Tester la connexion';
+    testBtn.textContent = 'Tester la connexion (auth)';
     testBtn.disabled = !plugin.getConfig().enabled;
     testBtn.addEventListener('click', async () => {
         testBtn.disabled = true;
@@ -93,30 +158,36 @@ export function buildSettingsPanel(plugin) {
         const result = await plugin.testConnection();
 
         testBtn.disabled = false;
-        testBtn.textContent = 'Tester la connexion';
+        testBtn.textContent = 'Tester la connexion (auth)';
 
         if (result.success) {
             testResult.className = 'backend-test-result backend-test-result--success';
-            testResult.textContent = `✓ Connexion réussie (${result.user?.name || result.user?.email || 'utilisateur connecté'})`;
+            testResult.textContent = `Authentifié : ${result.user?.name || result.user?.email || 'utilisateur connecté'}`;
         } else {
             testResult.className = 'backend-test-result backend-test-result--error';
-            testResult.textContent = `✗ Échec : ${result.error}`;
+            testResult.textContent = `Échec : ${result.error}`;
         }
     });
-    container.appendChild(testBtn);
 
-    // Résultat du test
     const testResult = document.createElement('p');
     testResult.className = 'backend-test-result';
-    container.appendChild(testResult);
 
-    // Champ intervalle de pull
+    const testHint = document.createElement('p');
+    testHint.className = 'form-hint';
+    testHint.textContent = 'Vérifie que le token Sanctum est valide (GET /api/me).';
+
+    testGroup.appendChild(testBtn);
+    testGroup.appendChild(testResult);
+    testGroup.appendChild(testHint);
+    container.appendChild(testGroup);
+
+    // --- Champ intervalle de pull ---
     const intervalGroup = document.createElement('div');
-    intervalGroup.className = 'backend-form-group';
+    intervalGroup.className = 'form-group';
 
     const intervalLabel = document.createElement('label');
     intervalLabel.textContent = 'Intervalle de synchronisation (secondes)';
-    intervalLabel.className = 'backend-form-label';
+    intervalLabel.className = 'label';
 
     const intervalInput = document.createElement('input');
     intervalInput.type = 'number';
@@ -136,5 +207,8 @@ export function buildSettingsPanel(plugin) {
     intervalGroup.appendChild(intervalInput);
     container.appendChild(intervalGroup);
 
-    return container;
+    // --- Test initial si une URL est déjà configurée ---
+    if (urlInput.value.trim()) {
+        testUrl();
+    }
 }

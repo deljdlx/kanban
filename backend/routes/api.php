@@ -9,7 +9,13 @@ use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
+Route::get('/version', fn () => response()->json([
+    'api' => config('kanban.api_version', '1.0.0'),
+    'app' => config('app.name'),
+]));
+
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -25,6 +31,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/taxonomies', [TaxonomyController::class, 'index']);
 
     // Boards CRUD
+    Route::get('/boards/registry', [BoardController::class, 'registry'])
+        ->middleware('can:board.view');
     Route::get('/boards', [BoardController::class, 'index'])
         ->middleware('can:board.view');
     Route::get('/boards/{id}', [BoardController::class, 'show'])

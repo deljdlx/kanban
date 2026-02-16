@@ -11,6 +11,29 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
+     * Register a new user account.
+     */
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        return response()->json([
+            'user' => $user,
+            'message' => 'Account created',
+        ], 201);
+    }
+
+    /**
      * Login with email and password.
      */
     public function login(Request $request)
@@ -56,6 +79,8 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return response()->json($request->user()->load('roles', 'permissions'));
+        // Eager-load roles pour le getRoleAttribute() accessor.
+        // permissions n'est pas charge car masque dans $hidden.
+        return response()->json($request->user()->load('roles'));
     }
 }

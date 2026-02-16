@@ -2,34 +2,26 @@
  * ImageBackendAdapter — Adapteur backend pour les images.
  *
  * Gère l'upload, le download et la suppression des images vers le backend Laravel.
- * Utilise multipart/form-data pour l'upload des blobs.
+ * Délègue le HTTP (auth, timeout, 401) au BackendHttpClient centralisé.
  */
 export default class ImageBackendAdapter {
     /**
-     * @type {string}
+     * Client HTTP centralisé.
+     * @type {import('../../../services/BackendHttpClient.js').BackendHttpClient}
      */
-    _baseUrl;
+    _httpClient;
 
     /**
-     * Fonction retournant les headers HTTP (ex: Authorization).
-     * @type {() => Object}
+     * @param {import('../../../services/BackendHttpClient.js').BackendHttpClient} httpClient
      */
-    _getHeaders;
-
-    /**
-     * @param {Object} config
-     * @param {string} config.baseUrl - URL de base du backend (sans trailing slash)
-     * @param {() => Object} config.getHeaders - Fonction retournant les headers HTTP
-     */
-    constructor({ baseUrl, getHeaders }) {
-        this._baseUrl = baseUrl.replace(/\/+$/, '');
-        this._getHeaders = getHeaders;
+    constructor(httpClient) {
+        this._httpClient = httpClient;
     }
 
     /**
      * Upload une image vers le backend.
      *
-     * POST {baseUrl}/api/boards/{boardId}/images
+     * POST /api/boards/{boardId}/images
      *
      * @param {string} imageId
      * @param {Blob} blob
@@ -44,46 +36,30 @@ export default class ImageBackendAdapter {
         formData.append('image', blob, `${imageId}.${this._getExtension(mimeType)}`);
         if (cardId) formData.append('cardId', cardId);
 
-        const headers = this._getHeaders();
-        // Ne pas définir Content-Type pour laisser le navigateur gérer multipart/form-data
-
-        const response = await fetch(`${this._baseUrl}/api/boards/${boardId}/images`, {
-            method: 'POST',
-            headers,
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error(`Upload failed: HTTP ${response.status}`);
-        }
+        await this._httpClient.upload(`/api/boards/${boardId}/images`, formData);
     }
 
     /**
      * Télécharge une image depuis le backend.
      *
-     * GET {baseUrl}/api/images/{imageId}
+     * GET /api/images/{imageId}
      *
      * @param {string} imageId
      * @param {string} boardId - ID du board (fourni par l'appelant)
      * @returns {Promise<Object|null>} Record { id, blob, boardId, cardId, mimeType, size, createdAt }
      */
     async downloadImage(imageId, boardId) {
-        const headers = this._getHeaders();
-
-        const response = await fetch(`${this._baseUrl}/api/images/${imageId}`, {
-            method: 'GET',
-            headers,
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) return null;
-            throw new Error(`Download failed: HTTP ${response.status}`);
+        let response;
+        try {
+            response = await this._httpClient.requestRaw('GET', `/api/images/${imageId}`);
+        } catch (error) {
+            // 404 → image inexistante, retourne null
+            if (error.message.includes('404')) return null;
+            throw error;
         }
 
         const blob = await response.blob();
         const mimeType = response.headers.get('Content-Type') || 'image/png';
-
-        // Récupère cardId depuis les headers custom (si disponible)
         const cardId = response.headers.get('X-Card-Id') || null;
 
         return {
@@ -100,21 +76,18 @@ export default class ImageBackendAdapter {
     /**
      * Supprime une image du backend.
      *
-     * DELETE {baseUrl}/api/images/{imageId}
+     * DELETE /api/images/{imageId}
      *
      * @param {string} imageId
      * @returns {Promise<void>}
      */
     async deleteImage(imageId) {
-        const headers = this._getHeaders();
-
-        const response = await fetch(`${this._baseUrl}/api/images/${imageId}`, {
-            method: 'DELETE',
-            headers,
-        });
-
-        if (!response.ok && response.status !== 404) {
-            throw new Error(`Delete failed: HTTP ${response.status}`);
+        try {
+            await this._httpClient.delete(`/api/images/${imageId}`);
+        } catch (error) {
+            // 404 → déjà supprimée, pas une erreur
+            if (error.message.includes('404')) return;
+            throw error;
         }
     }
 

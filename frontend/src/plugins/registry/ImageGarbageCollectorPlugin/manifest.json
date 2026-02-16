@@ -1,5 +1,6 @@
 {
     "name": "image-gc",
+    "scope": "app",
     "label": "Nettoyage d'images",
     "description": "Supprime automatiquement les images orphelines après chaque sauvegarde.",
     "tags": ["images", "maintenance"],

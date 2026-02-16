@@ -327,6 +327,13 @@ graph TB
         GET["get(key) / set(key, value)"]
         LOAD["loadBoard(id) / saveBoard(id, data)"]
         IMG["storeImage() / getImageUrl()"]
+        DRV["setDriver(driver)"]
+    end
+
+    subgraph Driver["StorageDriver (strategie)"]
+        style Driver fill:#e0f2fe,stroke:#0284c7,color:#1e1b4b
+        LOCAL["LocalStorageDriver<br/>IndexedDB via BoardStorage"]
+        BACKEND["BackendStorageDriver<br/>REST via httpClient"]
     end
 
     subgraph Impl["Implementation"]
@@ -337,14 +344,34 @@ graph TB
     end
 
     GET --> BSTO --> META
-    LOAD --> BSTO --> BOARDS
+    DRV --> LOCAL
+    DRV --> BACKEND
+    LOAD --> LOCAL
+    LOCAL --> BSTO --> BOARDS
+    BACKEND -->|"HTTP"| API["Backend REST"]
     IMG --> IMGSTO --> IMAGES
     BSTO --> DB
     IMGSTO --> DB
 ```
 
+### StorageDriver (pattern strategie)
+
+`StorageService` delegue les operations board a un driver interchangeable via `setDriver(driver)` :
+
+| Driver | Source | Usage |
+|---|---|---|
+| `LocalStorageDriver` (defaut) | IndexedDB via BoardStorage | Mode offline / BackendPlugin desactive |
+| `BackendStorageDriver` | REST via httpClient | BackendPlugin actif et utilisateur connecte |
+
+Les **settings** (`get/set/remove`) et les **images** restent toujours en IndexedDB local, seules les operations board changent de source.
+
+Le **board actif** est stocke comme setting local (`storage:activeBoard`) dans le store meta, independant du driver. Migration automatique depuis l'ancien `registry.activeBoard` au premier acces.
+
 **Fichiers** :
-- [`src/services/StorageService.js`](../src/services/StorageService.js) — Facade unifiee (tout async)
+- [`src/services/StorageService.js`](../src/services/StorageService.js) — Facade unifiee (tout async) + driver
+- [`src/services/storage/StorageDriver.js`](../src/services/storage/StorageDriver.js) — Interface abstraite (7 methodes board-only)
+- [`src/services/storage/LocalStorageDriver.js`](../src/services/storage/LocalStorageDriver.js) — Wrap BoardStorage (IndexedDB)
+- [`src/services/storage/BackendStorageDriver.js`](../src/services/storage/BackendStorageDriver.js) — Pur REST via httpClient
 - [`src/services/storage/Database.js`](../src/services/storage/Database.js) — Ouverture IndexedDB, schema, migrations
 - [`src/services/storage/BoardStorage.js`](../src/services/storage/BoardStorage.js) — CRUD boards, registry, settings
 - [`src/services/storage/IndexedDBImageStorage.js`](../src/services/storage/IndexedDBImageStorage.js) — Blobs avec Object URL caching

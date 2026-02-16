@@ -35,24 +35,17 @@ class TaxonomyService extends EventEmitter {
     _loaded;
 
     /**
-     * URL de fetch pour le backend (null = mode local).
-     * @type {string|null}
+     * Client HTTP centralisé pour les appels backend (null = mode local).
+     * @type {import('./BackendHttpClient.js').BackendHttpClient|null}
      */
-    _fetchUrl;
-
-    /**
-     * Fonction retournant les headers HTTP pour le backend.
-     * @type {(() => Object)|null}
-     */
-    _getHeaders;
+    _httpClient;
 
     constructor() {
         super();
         this._staticTaxonomies = {};
         this._dynamicTaxonomies = {};
         this._loaded = false;
-        this._fetchUrl = null;
-        this._getHeaders = null;
+        this._httpClient = null;
     }
 
     /**
@@ -71,14 +64,12 @@ class TaxonomyService extends EventEmitter {
     }
 
     /**
-     * Configure l'URL de fetch pour le backend.
+     * Configure le client HTTP pour les appels backend.
      *
-     * @param {string} url - URL complète de l'endpoint taxonomies
-     * @param {() => Object} getHeaders - Fonction retournant les headers HTTP
+     * @param {import('./BackendHttpClient.js').BackendHttpClient|null} httpClient
      */
-    setFetchUrl(url, getHeaders) {
-        this._fetchUrl = url;
-        this._getHeaders = getHeaders;
+    setHttpClient(httpClient) {
+        this._httpClient = httpClient;
     }
 
     /**
@@ -93,18 +84,21 @@ class TaxonomyService extends EventEmitter {
 
     /**
      * Charge les taxonomies depuis l'API (backend ou mock local).
+     * Si httpClient est configuré, utilise le backend. Sinon, mock local.
      *
      * @private
      */
     async _loadStatic() {
         try {
-            const url = this._fetchUrl || '/api/taxonomies.json';
-            const headers = this._getHeaders ? this._getHeaders() : {};
+            let data;
 
-            const response = await fetch(url, { headers });
-            if (!response.ok) throw new Error('HTTP ' + response.status);
-
-            const data = await response.json();
+            if (this._httpClient) {
+                data = await this._httpClient.get('/api/taxonomies');
+            } else {
+                const response = await fetch('/api/taxonomies.json');
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                data = await response.json();
+            }
 
             // Backend retourne un tableau [{ key, label, terms }]
             // Mock local retourne { taxonomies: { [key]: { label, terms } } }
@@ -117,7 +111,7 @@ class TaxonomyService extends EventEmitter {
             console.warn('TaxonomyService : impossible de charger les taxonomies', error);
 
             // Fallback sur le mock local si le backend échoue
-            if (this._fetchUrl) {
+            if (this._httpClient) {
                 try {
                     const response = await fetch('/api/taxonomies.json');
                     if (response.ok) {

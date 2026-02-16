@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Board;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class BoardController extends Controller
@@ -20,6 +21,43 @@ class BoardController extends Controller
             ->paginate($request->get('per_page', 30));
 
         return response()->json($boards);
+    }
+
+    /**
+     * Get lightweight board registry (metadata without heavy data field).
+     *
+     * Returns an array of board metadata compatible with the frontend BoardMeta format:
+     * { id, name, description, columnCount, cardCount, coverImageId, createdAt, updatedAt }
+     */
+    public function registry()
+    {
+        // Charge uniquement les colonnes necessaires.
+        // Le champ data (JSON) est requis pour calculer les stats (columnCount, cardCount).
+        // cursor() evite de charger tous les boards en memoire simultanement.
+        $boards = Board::select(['id', 'name', 'data', 'created_at', 'updated_at'])->get();
+
+        $registry = $boards->map(function (Board $board) {
+            $data = $board->data ?? [];
+            $columns = $data['columns'] ?? [];
+
+            $cardCount = 0;
+            foreach ($columns as $column) {
+                $cardCount += count($column['cards'] ?? []);
+            }
+
+            return [
+                'id' => $board->id,
+                'name' => $board->name,
+                'description' => $data['description'] ?? '',
+                'columnCount' => count($columns),
+                'cardCount' => $cardCount,
+                'coverImageId' => $data['coverImageId'] ?? null,
+                'createdAt' => $board->created_at?->toISOString(),
+                'updatedAt' => $board->updated_at?->toISOString(),
+            ];
+        });
+
+        return response()->json($registry->values());
     }
 
     /**

@@ -1,5 +1,6 @@
 {
     "name": "theme",
+    "scope": "app",
     "label": "Thème",
     "description": "Change les couleurs, la police et l'échelle du kanban.",
     "tags": ["apparence", "couleur", "theme"]

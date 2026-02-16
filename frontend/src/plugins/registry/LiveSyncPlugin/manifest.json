@@ -1,5 +1,6 @@
 {
     "name": "live-sync",
+    "scope": "app",
     "label": "Synchronisation temps réel",
     "description": "Synchronise le board entre onglets. Détecte les changements et applique les mises à jour automatiquement.",
     "tags": ["core", "sync"],

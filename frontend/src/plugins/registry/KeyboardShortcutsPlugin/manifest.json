@@ -1,5 +1,6 @@
 {
     "name": "keyboard-shortcuts",
+    "scope": "app",
     "label": "Raccourcis clavier",
     "description": "Raccourcis clavier paramétrables : Escape, Ctrl+N, etc.",
     "tags": ["navigation", "productivité"],

@@ -72,6 +72,23 @@
     }
 }
 
+// --- Contenu principal (contient une grille directe ou des sections) ---
+.home-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+// --- Section titree (mode backend split) ---
+.home-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 1rem 0;
+}
+
 // --- Grille de boards ---
 .home-grid {
     display: grid;

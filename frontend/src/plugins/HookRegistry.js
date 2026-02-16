@@ -195,6 +195,45 @@ class HookRegistry {
     }
 
     /**
+     * Déclenche une action et attend la résolution de tous les callbacks async.
+     *
+     * Même comportement que doAction() mais attend chaque callback qui
+     * retourne une Promise. Utilisé pour les hooks d'initialisation
+     * (ex: app:initialized) où le code appelant doit attendre que tous
+     * les plugins aient fini leur setup avant de continuer.
+     *
+     * @param {string} hookName - Nom du hook
+     * @param {...*}   args     - Arguments transmis aux callbacks
+     * @returns {Promise<void>}
+     */
+    async doActionAsync(hookName, ...args) {
+        this._depth++;
+        if (this._depth > this._maxDepth) {
+            console.error(
+                new Error(
+                    `HookRegistry : récursion infinie détectée ! ` +
+                        `Profondeur max (${this._maxDepth}) atteinte pour "${hookName}".`,
+                ),
+            );
+            this._depth--;
+            return;
+        }
+        try {
+            const list = this._actions.get(hookName);
+            if (!list) return;
+            for (const entry of list) {
+                try {
+                    await entry.callback(...args);
+                } catch (err) {
+                    console.error(`HookRegistry : un callback de l'action "${hookName}" a planté.`, err);
+                }
+            }
+        } finally {
+            this._depth--;
+        }
+    }
+
+    /**
      * Déclenche une action : appelle tous les callbacks enregistrés
      * dans l'ordre de priorité croissante.
      *

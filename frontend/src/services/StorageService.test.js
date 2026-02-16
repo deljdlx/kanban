@@ -52,7 +52,7 @@ const { getDB } = await import('./storage/Database.js');
 // ---------------------------------------------------------------
 
 beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     StorageService._initialized = false;
 });
 
@@ -108,13 +108,17 @@ describe('StorageService — settings', () => {
 // ---------------------------------------------------------------
 
 describe('StorageService — boards', () => {
-    it('getBoardRegistry délègue à boardStorage.getRegistry', async () => {
-        mockBoardStorage.getRegistry.mockResolvedValue({ boards: [] });
+    it('getBoardRegistry compose la liste du driver + le board actif', async () => {
+        // Le driver (LocalStorageDriver) appelle getRegistry pour obtenir boards
+        mockBoardStorage.getRegistry.mockResolvedValue({ boards: [], activeBoard: 'b-old' });
+        // _getActiveBoard lit le setting local d'abord
+        mockBoardStorage.getSetting.mockResolvedValue(null);
+        // Migration : lit activeBoard depuis l'ancien registre, puis le sauvegarde en setting
+        mockBoardStorage.setSetting.mockResolvedValue(undefined);
 
         const result = await StorageService.getBoardRegistry();
 
-        expect(mockBoardStorage.getRegistry).toHaveBeenCalledOnce();
-        expect(result).toEqual({ boards: [] });
+        expect(result).toEqual({ version: 1, activeBoard: 'b-old', boards: [] });
     });
 
     it('saveBoardRegistry délègue à boardStorage.saveRegistry', async () => {
@@ -151,6 +155,9 @@ describe('StorageService — boards', () => {
 
     it('deleteBoard délègue à boardStorage.deleteBoard', async () => {
         mockBoardStorage.deleteBoard.mockResolvedValue(true);
+        // _getActiveBoard() lit le setting local, puis fallback sur getRegistry()
+        mockBoardStorage.getSetting.mockResolvedValue(null);
+        mockBoardStorage.getRegistry.mockResolvedValue({ boards: [], activeBoard: null });
 
         const result = await StorageService.deleteBoard('b-1');
 
@@ -176,13 +183,12 @@ describe('StorageService — boards', () => {
         expect(result).toBe(true);
     });
 
-    it('setActiveBoard délègue à boardStorage.setActiveBoard', async () => {
-        mockBoardStorage.setActiveBoard.mockResolvedValue(true);
+    it('setActiveBoard stocke en setting local', async () => {
+        mockBoardStorage.setSetting.mockResolvedValue(undefined);
 
-        const result = await StorageService.setActiveBoard('b-1');
+        await StorageService.setActiveBoard('b-1');
 
-        expect(mockBoardStorage.setActiveBoard).toHaveBeenCalledWith('b-1');
-        expect(result).toBe(true);
+        expect(mockBoardStorage.setSetting).toHaveBeenCalledWith('storage:activeBoard', 'b-1');
     });
 });
 

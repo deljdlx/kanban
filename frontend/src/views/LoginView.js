@@ -130,11 +130,22 @@ export default class LoginView {
         this._emailInput.addEventListener('keydown', this._onKeydownBound);
         this._passwordInput.addEventListener('keydown', this._onKeydownBound);
 
+        // Lien vers inscription
+        const registerLink = document.createElement('a');
+        registerLink.className = 'login-link';
+        registerLink.href = '#';
+        registerLink.textContent = "Pas encore de compte ? S'inscrire";
+        registerLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            Router.navigate('/register');
+        });
+
         // Assemblage
         form.appendChild(emailGroup);
         form.appendChild(pwdGroup);
         form.appendChild(this._errorElement);
         form.appendChild(this._submitBtn);
+        form.appendChild(registerLink);
 
         card.appendChild(title);
         card.appendChild(form);

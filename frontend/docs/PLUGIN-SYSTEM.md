@@ -173,8 +173,18 @@ stateDiagram-v2
 | `modal:addCard:opened` | Action | Modale ajout ouverte | `{ pluginsSlot, registerCardType, onClose, addTab(label, { order }) }` |
 | `modal:editCard:opened` | Action | Modale edition ouverte | `{ cardId, card, body, pluginsSlot, addTab(label, { order }), onClose }` |
 | `modal:cardDetail:renderContent` | Action | Rendu detail carte | `{ card, panel, handled }` |
-| `modal:boardSettings:opened` | Action | Modale settings ouverte | `{ registerTab, board, onClose }` |
+| `modal:appSettings:opened` | Action | Modale app settings ouverte | `{ registerTab, onClose }` |
+| `modal:boardSettings:opened` | Action | Modale board settings ouverte | `{ registerTab, board, onClose }` |
 | `modal:boardSettings:general` | Action | Onglet General rendu | `{ panel, board }` |
+
+### Authentification
+
+| Hook | Type | Declencheur | Payload |
+|---|---|---|---|
+| `auth:login` | Action | Login reussi | `{ userId }` |
+| `auth:beforeLogout` | Action | Avant cleanup session (token encore disponible) | `{}` |
+| `auth:logout` | Action | Apres cleanup session | `{}` |
+| `auth:tokenExpired` | Action | BackendHttpClient recoit un 401 avec token | `{}` |
 
 ### Backend sync
 
@@ -265,6 +275,7 @@ src/plugins/registry/MonPlugin/
 | `label` | `string` | `name` | Nom affiche dans l'UI |
 | `description` | `string` | `''` | Description courte |
 | `tags` | `string[]` | `[]` | Tags pour classifier |
+| `scope` | `string` | `'board'` | Scope du plugin : `'app'` (global) ou `'board'` (par board) |
 | `priority` | `number` | `10` | Ordre d'enregistrement (plus petit = plus tot) |
 | `disabled` | `boolean` | `false` | Si `true`, le plugin n'est pas charge |
 | `hooks.provides` | `array` | `[]` | Hooks fournis (string ou objet avec metadonnees) |
@@ -384,6 +395,24 @@ Declarer dans `manifest.json` :
 
 `PluginAssembler` copie la valeur sur l'objet plugin (`plugin.priority`).
 Si le champ est absent, la priorite par defaut est `10`.
+
+### Scope d'un plugin
+
+Le champ `scope` dans le manifest determine si le plugin est global (`'app'`) ou specifique a un board (`'board'`).
+
+```json
+{
+    "name": "mon-plugin",
+    "scope": "app",
+    ...
+}
+```
+
+`PluginAssembler` copie la valeur sur l'objet plugin (`plugin.scope`).
+Si le champ est absent, le scope par defaut est `'board'`.
+
+Les plugins `scope: 'app'` (12) apparaissent dans la modale "Parametres de l'application" (`ModalAppSettings`).
+Les plugins `scope: 'board'` (19, defaut) apparaissent dans la modale "Configuration du board" (`ModalBoardSettings`).
 
 > **Note** : cette priorite determine l'ordre d'**enregistrement** des plugins,
 > pas la priorite des callbacks au sein d'un hook (geree par `addAction(hook, cb, priority)`).

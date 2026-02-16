@@ -1,13 +1,19 @@
 /**
- * PluginsPanel — Onglet "Plugins" de la modale Board Settings.
+ * PluginsPanel — Onglet "Plugins" des modales Board Settings et App Settings.
  *
  * Affiche :
  *   - Onglets horizontaux par catégorie (Tous, Apparence, Widgets…)
  *   - Liste des plugins avec toggle on/off
  *   - Bouton paramètres pour les plugins configurables
+ *
+ * Accepte un filtre `scope` ('app' ou 'board') pour n'afficher que les
+ * plugins correspondants. Si scope est null, tous les plugins sont affichés.
  */
 import PluginManager from '../../plugins/PluginManager.js';
 import ModalPluginSettings from '../ModalPluginSettings.js';
+import ModalConfirmDelete from '../ModalConfirmDelete.js';
+import AuthService from '../../services/AuthService.js';
+import Router from '../../services/Router.js';
 
 /**
  * Catégories de plugins pour le filtrage par onglet.
@@ -53,11 +59,31 @@ export default class PluginsPanel {
      */
     _onPluginChangeBound;
 
-    constructor() {
+    /**
+     * Filtre de scope : 'app', 'board', ou null (tous).
+     * @type {string|null}
+     */
+    _scope;
+
+    /**
+     * Callback pour demander la fermeture de la modale parente.
+     * Fourni par ModalAppSettings ou ModalBoardSettings.
+     * @type {Function|null}
+     */
+    _onRequestClose;
+
+    /**
+     * @param {string|null} [scope=null] - Filtre par scope ('app' ou 'board'). null = tous.
+     * @param {Object} [options]
+     * @param {Function} [options.onRequestClose] - Ferme la modale parente
+     */
+    constructor(scope = null, { onRequestClose = null } = {}) {
         this._panel = null;
         this._listContainer = null;
         this._activeCategory = null;
         this._onPluginChangeBound = null;
+        this._scope = scope;
+        this._onRequestClose = onRequestClose;
     }
 
     /**
@@ -163,7 +189,10 @@ export default class PluginsPanel {
     _renderList() {
         this._listContainer.innerHTML = '';
 
-        const entries = PluginManager.getAll();
+        const allEntries = PluginManager.getAll();
+        const entries = this._scope
+            ? allEntries.filter((e) => (e.instance.scope || 'board') === this._scope)
+            : allEntries;
         let visibleCount = 0;
 
         // Si un onglet catégorie est actif, afficher sans section headers
@@ -277,6 +306,13 @@ export default class PluginsPanel {
         toggle.checked = enabled;
         toggle.disabled = hasError;
         toggle.addEventListener('change', () => {
+            if (toggle.checked && plugin.name === 'backend') {
+                // Empêche l'activation immédiate — demande confirmation
+                toggle.checked = false;
+                this._confirmBackendActivation();
+                return;
+            }
+
             if (toggle.checked) {
                 PluginManager.enable(plugin.name);
             } else {
@@ -294,6 +330,38 @@ export default class PluginsPanel {
         item.appendChild(info);
         item.appendChild(actions);
         return item;
+    }
+
+    // ---------------------------------------------------------------
+    // Backend plugin activation
+    // ---------------------------------------------------------------
+
+    /**
+     * Ouvre une modale de confirmation avant d'activer le BackendPlugin.
+     * Si confirmé : active le plugin, logout, redirige vers /login.
+     *
+     * @private
+     */
+    _confirmBackendActivation() {
+        const modal = new ModalConfirmDelete({
+            title: 'Activation du backend',
+            message:
+                'Activer le backend va vous déconnecter de la session en cours. ' +
+                'Vous devrez vous reconnecter via la page de login.',
+            confirmLabel: 'Activer et se déconnecter',
+            onConfirm: async () => {
+                PluginManager.enable('backend');
+                await AuthService.logout();
+
+                // Ferme la modale parente (settings) avant de naviguer
+                if (this._onRequestClose) {
+                    this._onRequestClose();
+                }
+
+                Router.navigate('/login');
+            },
+        });
+        modal.open();
     }
 
     // ---------------------------------------------------------------
